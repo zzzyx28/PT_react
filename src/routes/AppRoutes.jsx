@@ -6,6 +6,7 @@ import Upload from '../pages/Upload'
 import Search from '../pages/Search'
 import ForumPage from '../pages/ForumPage'
 import MePage from '../pages/MePage'
+import TorrentList from '../pages/TorrentList'
 export default function AppRoutes() {
   return (
     <Routes>
@@ -16,6 +17,9 @@ export default function AppRoutes() {
       <Route path="/search" element={<Search />} />
       <Route path="/forum" element={<ForumPage />} />
       <Route path="/me" element={<MePage />} />
+      <Route path="/torrents" element={<TorrentList />} />
+
+      
 
 
     </Routes>
