@@ -6,15 +6,19 @@ import Upload from '../pages/Upload'
 import Search from '../pages/Search'
 import ForumPage from '../pages/ForumPage'
 import MePage from '../pages/MePage'
+import Chat from '../pages/Chat'
+import Announcement from '../pages/Announcement'
 export default function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/home" element={<Home />} />
+      <Route path="/announcement" element={<Announcement />} />
       <Route path="/upload" element={<Upload />} />
       <Route path="/search" element={<Search />} />
       <Route path="/forum" element={<ForumPage />} />
+      <Route path="/chat" element={<Chat />} />
       <Route path="/me" element={<MePage />} />
 
 

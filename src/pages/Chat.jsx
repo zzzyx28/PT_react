@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 // 模拟用户列表数据
 const initialUsers = [
-  { id: 1, name: '用户A' },
+  { id: 1, name: '用户A' ,unread: true},
   { id: 2, name: '用户B' },
   { id: 3, name: '用户C' }
 ];
@@ -15,7 +15,7 @@ const initialMessages = {
   ],
   2: [],
   3: [
-    { id: 1, text: '项目进展如何？', sender: 'other', timestamp: '09:15' }
+    { id: 1, text: '项目进展如何？', sender: 'other', timestamp: '09:15', unread: true}
   ]
 };
 
