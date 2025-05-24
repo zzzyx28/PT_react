@@ -1,9 +1,16 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { TextField, Button, Typography, Box, Alert } from '@mui/material';
-import { mockRegister } from '../api/authMockApi' 
+import axios from 'axios';
+
 export default function Register() {
-  const [formData, setFormData] = useState({ username: '', password: '', confirm: '' });
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    confirm: '',
+    inviteCode: '',
+  });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
@@ -12,47 +19,74 @@ export default function Register() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    setError('')
-    setSuccess(false)
-  
-    mockRegister(formData)
-      .then(() => {
-        setSuccess(true)
-        setTimeout(() => {
-          navigate('/')
-        }, 1500)
-      })
-      .catch((err) => {
-        setError(err.message)
-      })
-  }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess(false);
+
+    if (formData.password !== formData.confirm) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    try {
+      const res = await axios.post('http://localhost:8080/api/user/register', null, {
+        params: {
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+          inviteCode: formData.inviteCode,
+        },
+      });
+      console.log(res.data);
+      setSuccess(true);
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
+    } catch (err) {
+      setError(err.response?.data || 'Registration failed.');
+    }
+  };
 
   return (
     <Box sx={{ maxWidth: 400, margin: 'auto', paddingTop: '100px' }}>
       <Typography variant="h4" gutterBottom>Register</Typography>
-      
+
       {error && <Alert severity="error">{error}</Alert>}
       {success ? (
-        <Alert severity="success">Registered successfully! Redirecting to login...</Alert>
+        <Alert severity="success">Registered successfully! Check your email to verify.</Alert>
       ) : (
         <form onSubmit={handleSubmit}>
           <TextField
             label="Username"
             name="username"
-            sx={{ backgroundColor: 'gray', color: 'white' }}
             value={formData.username}
             onChange={handleChange}
             fullWidth
             margin="normal"
             required
-
+          />
+          <TextField
+            label="Email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            fullWidth
+            margin="normal"
+            required
+          />
+          <TextField
+            label="Invite Code"
+            name="inviteCode"
+            value={formData.inviteCode}
+            onChange={handleChange}
+            fullWidth
+            margin="normal"
+            required
           />
           <TextField
             label="Password"
             name="password"
-            sx={{ backgroundColor: 'gray', color: 'white' }}
             type="password"
             value={formData.password}
             onChange={handleChange}
@@ -63,7 +97,6 @@ export default function Register() {
           <TextField
             label="Confirm Password"
             name="confirm"
-            sx={{ backgroundColor: 'gray', color: 'white' }}
             type="password"
             value={formData.confirm}
             onChange={handleChange}

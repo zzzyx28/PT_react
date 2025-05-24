@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate, Link as RouterLink } from 'react-router-dom'
+import { useState } from 'react';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -8,32 +8,41 @@ import {
   Paper,
   Alert,
   Link,
-} from '@mui/material'
-import { mockLogin } from '../api/authMockApi'
+} from '@mui/material';
+import axios from 'axios';
 
 export default function Login() {
-  const [formData, setFormData] = useState({ username: '', password: '' })
-  const [error, setError] = useState('')
-  const navigate = useNavigate()
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
-  }
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = (e) => {
-    e.preventDefault()
-    setError('')
-  
-    mockLogin(formData)
+    e.preventDefault();
+    setError('');
+
+    axios
+      .post('http://localhost:8080/api/user/login', null, {
+        params: {
+          email: formData.email,
+          password: formData.password,
+        },
+      })
       .then((res) => {
-        // Optionally save token
-        localStorage.setItem('token', res.token)
-        navigate('/home')
+        const user = res.data;
+        // 假设 user 对象中包含 id/token/info
+        localStorage.setItem('user', JSON.stringify(user));
+        navigate('/home');
       })
       .catch((err) => {
-        setError(err.message)
-      })
-  }
+        const message =
+          err.response?.data || '登录失败，请检查邮箱和密码';
+        setError(message);
+      });
+  };
 
   return (
     <Box
@@ -41,13 +50,12 @@ export default function Login() {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        height: '100vh', // Ensure the box takes full viewport height
-        pt: 2, // Optional padding for spacing
+        height: '100vh',
       }}
     >
       <Paper elevation={3} sx={{ p: 4, width: 400 }}>
         <Typography variant="h5" align="center" gutterBottom>
-          Login
+          登录
         </Typography>
 
         {error && (
@@ -58,16 +66,16 @@ export default function Login() {
 
         <form onSubmit={handleSubmit}>
           <TextField
-            label="Username"
-            name="username"
-            value={formData.username}
+            label="邮箱"
+            name="email"
+            value={formData.email}
             onChange={handleChange}
             fullWidth
             required
             margin="normal"
           />
           <TextField
-            label="Password"
+            label="密码"
             name="password"
             type="password"
             value={formData.password}
@@ -76,23 +84,18 @@ export default function Login() {
             required
             margin="normal"
           />
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            sx={{ mt: 2 }}
-          >
-            Login
+          <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
+            登录
           </Button>
         </form>
 
         <Typography variant="body2" align="center" sx={{ mt: 2 }}>
-          Don't have an account?{' '}
+          没有账号？{' '}
           <Link component={RouterLink} to="/register">
-            Register here
+            立即注册
           </Link>
         </Typography>
       </Paper>
     </Box>
-  )
+  );
 }
