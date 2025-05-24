@@ -1,126 +1,117 @@
+import React, { useState } from 'react'
+import axios from 'axios'
 import {
-    Box,
-    Typography,
-    TextField,
-    Button,
-    MenuItem,
-    InputLabel,
-    Select,
-    FormControl,
-    Alert,
-  } from '@mui/material'
-  import { useState } from 'react'
-  
-  export default function Upload() {
-    const [form, setForm] = useState({
-      title: '',
-      category: '',
-      description: '',
-      torrentFile: null,
-      imageFile: null,
-    })
-  
-    const [success, setSuccess] = useState(false)
-  
-    const handleChange = (e) => {
-      const { name, value } = e.target
-      setForm((prev) => ({ ...prev, [name]: value }))
-    }
-  
-    const handleFileChange = (e) => {
-      setForm((prev) => ({ ...prev, torrentFile: e.target.files[0] }))
-    }
-  
-    const handleImageChange = (e) => {
-      setForm((prev) => ({ ...prev, imageFile: e.target.files[0] }))
-    }
-  
-    const handleSubmit = (e) => {
-      e.preventDefault()
-  
-      // Simulate saving
-      const mockData = {
-        ...form,
-        torrentFile: form.torrentFile?.name,
-        imageFile: form.imageFile?.name,
-      }
-  
-      console.log('Uploaded:', mockData)
-      localStorage.setItem('mockUpload', JSON.stringify(mockData))
-      setSuccess(true)
-    }
-  
-    return (
-      <Box sx={{ maxWidth: 600, mx: 'auto', mt: 5 }}>
-        <Typography variant="h4" gutterBottom>
-          Upload Torrent
-        </Typography>
-  
-        {success && <Alert severity="success">Torrent uploaded successfully!</Alert>}
-  
-        <form onSubmit={handleSubmit}>
-          <TextField
-            label="Title"
-            name="title"
-            value={form.title}
-            onChange={handleChange}
-            fullWidth
-            required
-            margin="normal"
-          />
-  
-          <FormControl fullWidth margin="normal" required>
-            <InputLabel>Category</InputLabel>
-            <Select
-              name="category"
-              value={form.category}
-              onChange={handleChange}
-              label="Category"
-            >
-              <MenuItem value="Movies">Movies</MenuItem>
-              <MenuItem value="TV">TV</MenuItem>
-              <MenuItem value="Music">Music</MenuItem>
-              <MenuItem value="Games">Games</MenuItem>
-              <MenuItem value="Books">Books</MenuItem>
-            </Select>
-          </FormControl>
-  
-          <TextField
-            label="Description"
-            name="description"
-            value={form.description}
-            onChange={handleChange}
-            fullWidth
-            required
-            margin="normal"
-            multiline
-            rows={4}
-          />
-  
-          <Box sx={{ mt: 2 }}>
-            <Typography gutterBottom>Torrent File</Typography>
-            <input
-              type="file"
-              accept=".torrent"
-              required
-              onChange={handleFileChange}
-            />
-          </Box>
-  
-          <Box sx={{ mt: 2 }}>
-            <Typography gutterBottom>Optional Image</Typography>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-            />
-          </Box>
-  
-          <Button type="submit" variant="contained" fullWidth sx={{ mt: 3 }}>
-            Upload
-          </Button>
-        </form>
-      </Box>
-    )
+  Box,
+  Button,
+  Container,
+  TextField,
+  Typography,
+  InputLabel,
+  MenuItem,
+  Select,
+  FormControl,
+  Alert,
+  Snackbar,
+} from '@mui/material'
+
+export default function Upload() {
+  const [file, setFile] = useState(null)
+  const [category, setCategory] = useState('')
+  const [description, setDescription] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
+  const [errorMessage, setErrorMessage] = useState('')
+
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0])
   }
-  
+
+  const handleUpload = async () => {
+    if (!file) {
+      setErrorMessage('请选择一个 .torrent 文件')
+      return
+    }
+
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('category', category)
+    formData.append('description', description)
+    formData.append('uid', '123456') // 可选：模拟用户 ID，后端也能从 Principal 获取
+
+    try {
+      const response = await axios.post('http://localhost:8080/api/torrents/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
+
+      setSuccessMessage(`上传成功：${response.data.title || response.data.filename}`)
+      setFile(null)
+      setCategory('')
+      setDescription('')
+    } catch (error) {
+      console.error('上传失败', error)
+      setErrorMessage(error.response?.data || '上传失败，请稍后再试')
+    }
+  }
+
+  return (
+    <Container maxWidth="sm" sx={{ mt: 5 }}>
+      <Typography variant="h4" gutterBottom>
+        上传种子文件
+      </Typography>
+
+      <Box display="flex" flexDirection="column" gap={3} mt={3}>
+        <input
+          type="file"
+          accept=".torrent"
+          onChange={handleFileChange}
+          style={{ display: 'block' }}
+        />
+
+        <FormControl fullWidth>
+          <InputLabel>分类</InputLabel>
+          <Select value={category} label="分类" onChange={(e) => setCategory(e.target.value)}>
+            <MenuItem value="1">电影</MenuItem>
+            <MenuItem value="2">电视剧</MenuItem>
+            <MenuItem value="3">游戏</MenuItem>
+            <MenuItem value="4">软件</MenuItem>
+          </Select>
+        </FormControl>
+
+        <TextField
+          label="描述"
+          multiline
+          rows={3}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+
+        <Button variant="contained" onClick={handleUpload}>
+          上传
+        </Button>
+      </Box>
+
+      {/* 成功提示 */}
+      <Snackbar
+        open={!!successMessage}
+        autoHideDuration={4000}
+        onClose={() => setSuccessMessage('')}
+      >
+        <Alert onClose={() => setSuccessMessage('')} severity="success" sx={{ width: '100%' }}>
+          {successMessage}
+        </Alert>
+      </Snackbar>
+
+      {/* 错误提示 */}
+      <Snackbar
+        open={!!errorMessage}
+        autoHideDuration={4000}
+        onClose={() => setErrorMessage('')}
+      >
+        <Alert onClose={() => setErrorMessage('')} severity="error" sx={{ width: '100%' }}>
+          {errorMessage}
+        </Alert>
+      </Snackbar>
+    </Container>
+  )
+}

@@ -1,21 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { SmileOutlined } from '@ant-design/icons';
+import 'emoji-picker-element';
 
-// 模拟用户列表数据
 const initialUsers = [
-  { id: 1, name: '用户A' ,unread: true},
-  { id: 2, name: '用户B' },
-  { id: 3, name: '用户C' }
+  { id: 1, name: '用户A', unread: 3 },
+  { id: 2, name: '用户B', unread: 0 },
+  { id: 3, name: '用户C', unread: 0 }
 ];
 
-// 模拟消息数据（按用户ID分类）
 const initialMessages = {
   1: [
     { id: 1, text: '你好，最近怎么样？', sender: 'user', timestamp: '10:30' },
-    { id: 2, text: '还不错，你呢？', sender: 'other', timestamp: '10:31' }
+    { id: 2, text: '还不错，你呢？😊', sender: 'other', timestamp: '10:31', isNew: true },
+    { id: 3, text: '周末有空吗？', sender: 'other', timestamp: '10:32', isNew: true },
+    { id: 4, text: '一起吃饭吧！', sender: 'other', timestamp: '10:33', isNew: true }
   ],
   2: [],
   3: [
-    { id: 1, text: '项目进展如何？', sender: 'other', timestamp: '09:15', unread: true}
+    { id: 1, text: '项目进展如何？👍', sender: 'other', timestamp: '09:15', isNew: true }
   ]
 };
 
@@ -24,23 +26,104 @@ const Chat = () => {
   const [inputText, setInputText] = useState('');
   const [messages, setMessages] = useState(initialMessages);
   const [users, setUsers] = useState(initialUsers);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef(null);
+  const inputRef = useRef(null);
+  const pickerRef = useRef(null);
 
-  // 轮询消息更新[9,10](@ref)
+  // 初始化表情选择器
+  useEffect(() => {
+    if (emojiPickerRef.current && !pickerRef.current) {
+      const picker = document.createElement('emoji-picker');
+      pickerRef.current = picker;
+      emojiPickerRef.current.appendChild(picker);
+      
+      picker.addEventListener('emoji-click', (event) => {
+        const emoji = event.detail.unicode;
+        setInputText(prev => prev + emoji);
+        inputRef.current.focus();
+      });
+    }
+
+    return () => {
+      if (pickerRef.current) {
+        pickerRef.current.removeEventListener('emoji-click', () => {});
+      }
+    };
+  }, []);
+
+  // 点击外部关闭表情选择器
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target) && 
+          event.target !== document.querySelector('.anticon-smile')) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // 模拟接收新消息
   useEffect(() => {
     const interval = setInterval(() => {
-      // 这里替换为实际的API请求
-      console.log('轮询消息更新...');
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [selectedUserId]); // 用户切换时重新启动轮询
+      const randomUserId = Math.floor(Math.random() * 3) + 1;
+      if (randomUserId !== selectedUserId) {
+        const newMessage = {
+          id: Date.now(),
+          text: `这是新消息 ${new Date().toLocaleTimeString()}`,
+          sender: 'other',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isNew: true
+        };
 
-  // 发送消息处理
+        setMessages(prev => ({
+          ...prev,
+          [randomUserId]: [...prev[randomUserId], newMessage]
+        }));
+
+        setUsers(prev => prev.map(user => 
+          user.id === randomUserId 
+            ? { ...user, unread: user.unread + 1 } 
+            : user
+        ));
+      }
+    }, 10000); // 每10秒模拟一条新消息
+
+    return () => clearInterval(interval);
+  }, [selectedUserId]);
+
+  // 当切换用户时，清除该用户的新消息标记
+  useEffect(() => {
+    if (selectedUserId) {
+      setUsers(prev => prev.map(user => 
+        user.id === selectedUserId 
+          ? { ...user, unread: 0 } 
+          : user
+      ));
+
+      setMessages(prev => {
+        const updatedMessages = { ...prev };
+        if (updatedMessages[selectedUserId]) {
+          updatedMessages[selectedUserId] = updatedMessages[selectedUserId].map(msg => ({
+            ...msg,
+            isNew: false
+          }));
+        }
+        return updatedMessages;
+      });
+    }
+  }, [selectedUserId]);
+
   const handleSend = (e) => {
     e.preventDefault();
     if (!inputText.trim()) return;
 
     const newMessage = {
-      id: messages[selectedUserId].length + 1,
+      id: Date.now(),
       text: inputText,
       sender: 'user',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -51,6 +134,12 @@ const Chat = () => {
       [selectedUserId]: [...prev[selectedUserId], newMessage]
     }));
     setInputText('');
+    setShowEmojiPicker(false);
+  };
+
+  const toggleEmojiPicker = (e) => {
+    e.stopPropagation();
+    setShowEmojiPicker(prev => !prev);
   };
 
   return (
@@ -59,13 +148,15 @@ const Chat = () => {
       height: '93.5vh',
       width: '80vw',
       backgroundColor: '#1a1a1a',
-      color: 'white'
+      color: 'white',
+      position: 'relative'
     }}>
       {/* 左侧用户列表 */}
       <div style={{
         width: '300px',
         borderRight: '1px solid #333',
-        padding: '16px'
+        padding: '16px',
+        overflowY: 'auto'
       }}>
         <h3 style={{ marginBottom: '16px' }}>联系人</h3>
         {users.map(user => (
@@ -80,16 +171,32 @@ const Chat = () => {
               marginBottom: '8px',
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'center'
+              alignItems: 'center',
+              position: 'relative'
             }}
           >
             <span>{user.name}</span>
             {user.unread > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: '#ff4d4f',
+                boxShadow: '0 0 0 2px rgba(255, 77, 79, 0.2)'
+              }}></div>
+            )}
+            {user.unread > 0 && (
               <span style={{
-                background: '#007bff',
+                background: '#ff4d4f',
                 borderRadius: '12px',
-                padding: '2px 8px',
-                fontSize: '0.8em'
+                padding: '2px 6px',
+                fontSize: '0.7em',
+                color: 'white',
+                minWidth: '18px',
+                textAlign: 'center'
               }}>
                 {user.unread}
               </span>
@@ -114,16 +221,31 @@ const Chat = () => {
                 marginBottom: '16px',
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: msg.sender === 'user' ? 'flex-end' : 'flex-start'
+                alignItems: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                position: 'relative'
               }}
             >
+              {msg.isNew && msg.sender === 'other' && (
+                <div style={{
+                  position: 'absolute',
+                  top: '-5px',
+                  left: msg.sender === 'user' ? 'auto' : '-10px',
+                  right: msg.sender === 'user' ? '-10px' : 'auto',
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: '#ff4d4f',
+                  boxShadow: '0 0 0 2px rgba(255, 77, 79, 0.2)'
+                }}></div>
+              )}
               <div style={{
                 background: msg.sender === 'user' ? '#007bff' : '#333',
                 borderRadius: '12px',
                 padding: '8px 12px',
-                maxWidth: '60%'
+                maxWidth: '60%',
+                position: 'relative'
               }}>
-                <div>{msg.text}</div>
+                <div style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</div>
                 <div style={{
                   fontSize: '0.8em',
                   opacity: 0.7,
@@ -136,16 +258,37 @@ const Chat = () => {
         </div>
 
         {/* 输入区域 */}
-        <form onSubmit={handleSend} style={{ padding: '24px' }}>
+        <form onSubmit={handleSend} style={{ padding: '24px', position: 'relative' }}>
           <div style={{
             display: 'flex',
             gap: '12px',
             alignItems: 'center'
           }}>
+            <button
+              type="button"
+              onClick={toggleEmojiPicker}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#007bff',
+                cursor: 'pointer',
+                fontSize: '20px',
+                padding: '8px'
+              }}
+            >
+              <SmileOutlined />
+            </button>
+            
             <textarea
-              type="text"
+              ref={inputRef}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend(e);
+                }
+              }}
               placeholder="输入消息..."
               style={{
                 flex: 1,
@@ -154,8 +297,10 @@ const Chat = () => {
                 border: 'none',
                 background: '#333',
                 color: 'white',
-                height: '50px',
-                fontSize: '16px'
+                minHeight: '50px',
+                maxHeight: '150px',
+                fontSize: '16px',
+                resize: 'none'
               }}
             />
             <button
@@ -172,6 +317,19 @@ const Chat = () => {
               发送
             </button>
           </div>
+          
+          {/* 表情选择器 */}
+          {showEmojiPicker && (
+            <div
+              ref={emojiPickerRef}
+              style={{
+                position: 'absolute',
+                bottom: '80px',
+                left: '40px',
+                zIndex: 1000
+              }}
+            ></div>
+          )}
         </form>
       </div>
     </div>

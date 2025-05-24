@@ -15,7 +15,14 @@
     "@emotion/styled": "^11.14.0",
     "@mui/material": "^7.0.2",
     "axios": "^1.8.4",
+<<<<<<< HEAD
     "emoji-picker-element": "^1.26.3",
+=======
+    "bencode": "^4.0.0",
+    "bencode-js": "^0.0.8",
+    "buffer": "^6.0.3",
+    "nginx": "^1.1.0",
+>>>>>>> bc89d7320b9ec446121f6e43b11d874b0343d4e6
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.5.0"
