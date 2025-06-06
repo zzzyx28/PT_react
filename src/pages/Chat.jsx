@@ -29,47 +29,26 @@ const Chat = () => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const emojiPickerRef = useRef(null);
   const inputRef = useRef(null);
-  const pickerRef = useRef(null);
 
   // 初始化表情选择器
   useEffect(() => {
-    if (emojiPickerRef.current && !pickerRef.current) {
+    if (emojiPickerRef.current && !emojiPickerRef.current.shadowRoot) {
       const picker = document.createElement('emoji-picker');
-      pickerRef.current = picker;
       emojiPickerRef.current.appendChild(picker);
       
       picker.addEventListener('emoji-click', (event) => {
         const emoji = event.detail.unicode;
         setInputText(prev => prev + emoji);
+        setShowEmojiPicker(false);
         inputRef.current.focus();
       });
     }
-
-    return () => {
-      if (pickerRef.current) {
-        pickerRef.current.removeEventListener('emoji-click', () => {});
-      }
-    };
-  }, []);
-
-  // 点击外部关闭表情选择器
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target) && 
-          event.target !== document.querySelector('.anticon-smile')) {
-        setShowEmojiPicker(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
   }, []);
 
   // 模拟接收新消息
   useEffect(() => {
     const interval = setInterval(() => {
+      // 随机选择一个用户发送新消息
       const randomUserId = Math.floor(Math.random() * 3) + 1;
       if (randomUserId !== selectedUserId) {
         const newMessage = {
@@ -91,7 +70,7 @@ const Chat = () => {
             : user
         ));
       }
-    }, 10000); // 每10秒模拟一条新消息
+    }, 1000); // 每10秒模拟一条新消息
 
     return () => clearInterval(interval);
   }, [selectedUserId]);
@@ -99,12 +78,14 @@ const Chat = () => {
   // 当切换用户时，清除该用户的新消息标记
   useEffect(() => {
     if (selectedUserId) {
+      // 清除未读计数
       setUsers(prev => prev.map(user => 
         user.id === selectedUserId 
           ? { ...user, unread: 0 } 
           : user
       ));
 
+      // 清除消息的isNew标记
       setMessages(prev => {
         const updatedMessages = { ...prev };
         if (updatedMessages[selectedUserId]) {
@@ -137,8 +118,7 @@ const Chat = () => {
     setShowEmojiPicker(false);
   };
 
-  const toggleEmojiPicker = (e) => {
-    e.stopPropagation();
+  const toggleEmojiPicker = () => {
     setShowEmojiPicker(prev => !prev);
   };
 
