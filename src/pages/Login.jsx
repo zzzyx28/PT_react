@@ -36,6 +36,7 @@ export default function Login() {
         // 假设 user 对象中包含 id/token/info
         localStorage.setItem('user', JSON.stringify(user));
         localStorage.setItem('username', res.data.username);
+        localStorage.setItem('userId', res.data.userId);
         localStorage.setItem('token', res.data.token);
         navigate('/home');
       })

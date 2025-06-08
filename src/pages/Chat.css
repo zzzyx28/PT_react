@@ -1,0 +1,87 @@
+/* 标签页样式 */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #ccc;
+}
+
+.tabs button {
+  padding: 10px 20px;
+  cursor: pointer;
+  background: #f1f1f1;
+  border: none;
+  border-bottom: 3px solid transparent;
+}
+
+.tabs button.active {
+  border-bottom-color: #1890ff;
+  color: #1890ff;
+}
+
+/* 消息列表项 */
+.message-item {
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+
+.message-item:hover {
+  background-color: #f9f9f9;
+}
+
+/* 接收和发送消息的区分 */
+.message-item.received { 
+  background-color: #e6f7ff; 
+}
+
+.message-item.sent { 
+  background-color: #f6ffed; 
+}
+
+/* 未读消息强调 */
+.message-item .status strong {
+  color: #f5222d;
+}
+
+/* 弹窗样式 */
+.message-modal, .compose-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 4px;
+  width: 600px;
+  max-width: 90%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.close-btn {
+  float: right;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+/* 新建私信按钮 */
+.compose-btn {
+  position: fixed;
+  right: 30px;
+  bottom: 30px;
+  padding: 12px 20px;
+  background: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}

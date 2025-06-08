@@ -1,319 +1,272 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { SmileOutlined } from '@ant-design/icons';
-import 'emoji-picker-element';
+import React, { useState, useEffect } from 'react';
+import './Chat.css'
+import axios from 'axios';
 
-const initialUsers = [
-  { id: 1, name: '用户A', unread: 3 },
-  { id: 2, name: '用户B', unread: 0 },
-  { id: 3, name: '用户C', unread: 0 }
-];
+const PrivateMessageSystem = () => {
+  const [activeTab, setActiveTab] = useState('inbox');
+  const [messages, setMessages] = useState([]);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [isComposing, setIsComposing] = useState(false);
+  const [isReplying, setIsReplying] = useState(false);
+  const [replyReceiver, setReplyReceiver] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // 当前用户ID
+  const currentUserId = localStorage.getItem('username'); 
 
-const initialMessages = {
-  1: [
-    { id: 1, text: '你好，最近怎么样？', sender: 'user', timestamp: '10:30' },
-    { id: 2, text: '还不错，你呢？😊', sender: 'other', timestamp: '10:31', isNew: true },
-    { id: 3, text: '周末有空吗？', sender: 'other', timestamp: '10:32', isNew: true },
-    { id: 4, text: '一起吃饭吧！', sender: 'other', timestamp: '10:33', isNew: true }
-  ],
-  2: [],
-  3: [
-    { id: 1, text: '项目进展如何？👍', sender: 'other', timestamp: '09:15', isNew: true }
-  ]
+  // 创建带有token授权的axios实例
+const apiClient = axios.create({
+  baseURL: 'http://localhost:8080/api/message',
+});
+
+// 添加请求拦截器，为每个请求添加Authorization头部
+apiClient.interceptors.request.use(config => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+}, error => {
+  return Promise.reject(error);
+});
+
+  // 获取私信数据
+const fetchMessages = async () => {
+  setIsLoading(true);
+  try {
+    console.log(currentUserId)
+    if (activeTab === 'inbox') {
+      // 获取收件箱消息
+      const response = await apiClient.get(`/received?userId=${currentUserId}`);
+      setMessages(response.data || []);
+    } else {
+      // 获取全部消息
+      const allResponse = await apiClient.get(`/all?userId=${currentUserId}`);
+      const allMessages = allResponse.data || [];
+
+      if (activeTab === 'sent') {
+        // 过滤出当前用户发送的消息
+        const sentMessages = allMessages.filter(
+          msg => msg.senderId === currentUserId
+        );
+        setMessages(sentMessages);
+      } else {
+        // 显示全部消息
+        setMessages(allMessages);
+      }
+    }
+  } catch (error) {
+    console.error('获取私信失败:', error);
+  } finally {
+    setIsLoading(false);
+  }
 };
 
-const Chat = () => {
-  const [selectedUserId, setSelectedUserId] = useState(1);
-  const [inputText, setInputText] = useState('');
-  const [messages, setMessages] = useState(initialMessages);
-  const [users, setUsers] = useState(initialUsers);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const emojiPickerRef = useRef(null);
-  const inputRef = useRef(null);
-
-  // 初始化表情选择器
-  useEffect(() => {
-    if (emojiPickerRef.current && !emojiPickerRef.current.shadowRoot) {
-      const picker = document.createElement('emoji-picker');
-      emojiPickerRef.current.appendChild(picker);
-      
-      picker.addEventListener('emoji-click', (event) => {
-        const emoji = event.detail.unicode;
-        setInputText(prev => prev + emoji);
-        setShowEmojiPicker(false);
-        inputRef.current.focus();
+  // 标记消息为已读
+  const markAsRead = async (messageId) => {
+    try {
+      // 使用apiClient替代axios，自动添加token
+      await apiClient.post('/mark-read', null, {
+        params: { messageId }
       });
-    }
-  }, []);
-
-  // 模拟接收新消息
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // 随机选择一个用户发送新消息
-      const randomUserId = Math.floor(Math.random() * 3) + 1;
-      if (randomUserId !== selectedUserId) {
-        const newMessage = {
-          id: Date.now(),
-          text: `这是新消息 ${new Date().toLocaleTimeString()}`,
-          sender: 'other',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          isNew: true
-        };
-
-        setMessages(prev => ({
-          ...prev,
-          [randomUserId]: [...prev[randomUserId], newMessage]
-        }));
-
-        setUsers(prev => prev.map(user => 
-          user.id === randomUserId 
-            ? { ...user, unread: user.unread + 1 } 
-            : user
-        ));
-      }
-    }, 1000); // 每10秒模拟一条新消息
-
-    return () => clearInterval(interval);
-  }, [selectedUserId]);
-
-  // 当切换用户时，清除该用户的新消息标记
-  useEffect(() => {
-    if (selectedUserId) {
-      // 清除未读计数
-      setUsers(prev => prev.map(user => 
-        user.id === selectedUserId 
-          ? { ...user, unread: 0 } 
-          : user
+      // 更新本地消息状态
+      setMessages(messages.map(msg => 
+        msg.messageId === messageId ? {...msg, isRead: true} : msg
       ));
-
-      // 清除消息的isNew标记
-      setMessages(prev => {
-        const updatedMessages = { ...prev };
-        if (updatedMessages[selectedUserId]) {
-          updatedMessages[selectedUserId] = updatedMessages[selectedUserId].map(msg => ({
-            ...msg,
-            isNew: false
-          }));
-        }
-        return updatedMessages;
-      });
+    } catch (error) {
+      console.error('标记已读失败:', error);
     }
-  }, [selectedUserId]);
-
-  const handleSend = (e) => {
-    e.preventDefault();
-    if (!inputText.trim()) return;
-
-    const newMessage = {
-      id: Date.now(),
-      text: inputText,
-      sender: 'user',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    setMessages(prev => ({
-      ...prev,
-      [selectedUserId]: [...prev[selectedUserId], newMessage]
-    }));
-    setInputText('');
-    setShowEmojiPicker(false);
   };
 
-  const toggleEmojiPicker = () => {
-    setShowEmojiPicker(prev => !prev);
+  // 发送新消息
+  const sendMessage = async (receiverId, content) => {
+    try {
+      // 使用apiClient替代axios，自动添加token
+      await apiClient.post('/send', {
+        receiverId,
+        content
+      });
+      fetchMessages(); // 刷新列表
+    } catch (error) {
+      console.error('发送消息失败:', error);
+    }
   };
+
+  // 查看消息详情
+  const handleViewMessage = (message) => {
+    setSelectedMessage(message);
+    // 如果是收件箱消息且未读，则标记为已读
+    if (message.receiverId === localStorage.getItem('username') && !message.isRead) {
+      markAsRead(message.messageId);
+    }
+  };
+
+  // 回复消息
+  const handleReply = (senderId) => {
+    setReplyReceiver(senderId);
+    setIsReplying(true);
+  };
+
+  // 获取消息类型
+  const getMessageType = (message) => {
+    if (message.senderId === currentUserId) return 'sent';
+    if (message.receiverId === currentUserId) return 'received';
+    return null;
+  };
+
+  useEffect(() => {
+    fetchMessages();
+  }, [activeTab]);
 
   return (
-    <div style={{
-      display: 'flex',
-      height: '93.5vh',
-      width: '80vw',
-      backgroundColor: '#1a1a1a',
-      color: 'white',
-      position: 'relative'
-    }}>
-      {/* 左侧用户列表 */}
-      <div style={{
-        width: '300px',
-        borderRight: '1px solid #333',
-        padding: '16px',
-        overflowY: 'auto'
-      }}>
-        <h3 style={{ marginBottom: '16px' }}>联系人</h3>
-        {users.map(user => (
-          <div
-            key={user.id}
-            onClick={() => setSelectedUserId(user.id)}
-            style={{
-              padding: '12px',
-              borderRadius: '8px',
-              background: selectedUserId === user.id ? '#333' : 'transparent',
-              cursor: 'pointer',
-              marginBottom: '8px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              position: 'relative'
-            }}
-          >
-            <span>{user.name}</span>
-            {user.unread > 0 && (
-              <div style={{
-                position: 'absolute',
-                top: '8px',
-                right: '8px',
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: '#ff4d4f',
-                boxShadow: '0 0 0 2px rgba(255, 77, 79, 0.2)'
-              }}></div>
-            )}
-            {user.unread > 0 && (
-              <span style={{
-                background: '#ff4d4f',
-                borderRadius: '12px',
-                padding: '2px 6px',
-                fontSize: '0.7em',
-                color: 'white',
-                minWidth: '18px',
-                textAlign: 'center'
-              }}>
-                {user.unread}
-              </span>
-            )}
-          </div>
-        ))}
+    <div className="private-messages">
+      {/* 标签导航 */}
+      <div className="tabs">
+        <button 
+          className={activeTab === 'inbox' ? 'active' : ''}
+          onClick={() => setActiveTab('inbox')}
+        >
+          收件箱
+        </button>
+        <button 
+          className={activeTab === 'sent' ? 'active' : ''}
+          onClick={() => setActiveTab('sent')}
+        >
+          已发送
+        </button>
+        <button 
+          className={activeTab === 'all' ? 'active' : ''}
+          onClick={() => setActiveTab('all')}
+        >
+          全部私信
+        </button>
       </div>
-
-      {/* 右侧聊天区域 */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* 消息展示区域 */}
-        <div style={{
-          flex: 1,
-          padding: '24px',
-          overflowY: 'auto',
-          borderBottom: '1px solid #333'
-        }}>
-          {messages[selectedUserId].map(msg => (
-            <div
-              key={msg.id}
-              style={{
-                marginBottom: '16px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: msg.sender === 'user' ? 'flex-end' : 'flex-start',
-                position: 'relative'
-              }}
+      
+      {/* 新建消息按钮 */}
+      <button className="compose-btn" onClick={() => setIsComposing(true)}>
+        新建私信
+      </button>
+      
+      {/* 消息列表 */}
+      <div className="message-list">
+        {isLoading ? (
+          <p>加载中...</p>
+        ) : messages.length === 0 ? (
+          <p>暂无消息</p>
+        ) : (
+          messages.map((message) => (
+            <div 
+              key={message.messageId} 
+              className={`message-item ${getMessageType(message)}`}
+              onClick={() => handleViewMessage(message)}
             >
-              {msg.isNew && msg.sender === 'other' && (
-                <div style={{
-                  position: 'absolute',
-                  top: '-5px',
-                  left: msg.sender === 'user' ? 'auto' : '-10px',
-                  right: msg.sender === 'user' ? '-10px' : 'auto',
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  background: '#ff4d4f',
-                  boxShadow: '0 0 0 2px rgba(255, 77, 79, 0.2)'
-                }}></div>
-              )}
-              <div style={{
-                background: msg.sender === 'user' ? '#007bff' : '#333',
-                borderRadius: '12px',
-                padding: '8px 12px',
-                maxWidth: '60%',
-                position: 'relative'
-              }}>
-                <div style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</div>
-                <div style={{
-                  fontSize: '0.8em',
-                  opacity: 0.7,
-                  textAlign: 'right',
-                  marginTop: '4px'
-                }}>{msg.timestamp}</div>
+              <div className="message-header">
+                <span className="sender">{message.senderId}</span>
+                <span className="receiver">→ {message.receiverId}</span>
+                <span className="time">{message.createTime}</span>
+                
+                <div className="status">
+                  {activeTab === 'inbox' ? (
+                    message.isRead ? '已读' : <strong>未读</strong>
+                  ) : (
+                    message.isRead ? '已读' : '未读'
+                  )}
+                </div>
+                
+                {activeTab === 'inbox' && (
+                  <button 
+                    className="reply-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleReply(message.senderId);
+                    }}
+                  >
+                    回复
+                  </button>
+                )}
+              </div>
+              <div className="message-preview">
+                {message.content.length > 30 
+                  ? `${message.content.substring(0, 30)}...` 
+                  : message.content}
               </div>
             </div>
-          ))}
-        </div>
-
-        {/* 输入区域 */}
-        <form onSubmit={handleSend} style={{ padding: '24px', position: 'relative' }}>
-          <div style={{
-            display: 'flex',
-            gap: '12px',
-            alignItems: 'center'
-          }}>
-            <button
-              type="button"
-              onClick={toggleEmojiPicker}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#007bff',
-                cursor: 'pointer',
-                fontSize: '20px',
-                padding: '8px'
-              }}
-            >
-              <SmileOutlined />
-            </button>
-            
-            <textarea
-              ref={inputRef}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend(e);
-                }
-              }}
-              placeholder="输入消息..."
-              style={{
-                flex: 1,
-                padding: '12px',
-                borderRadius: '20px',
-                border: 'none',
-                background: '#333',
-                color: 'white',
-                minHeight: '50px',
-                maxHeight: '150px',
-                fontSize: '16px',
-                resize: 'none'
-              }}
-            />
-            <button
-              type="submit"
-              style={{
-                padding: '10px 24px',
-                borderRadius: '20px',
-                border: 'none',
-                background: '#007bff',
-                color: 'white',
-                cursor: 'pointer'
-              }}
-            >
-              发送
-            </button>
-          </div>
-          
-          {/* 表情选择器 */}
-          {showEmojiPicker && (
-            <div
-              ref={emojiPickerRef}
-              style={{
-                position: 'absolute',
-                bottom: '80px',
-                left: '40px',
-                zIndex: 1000
-              }}
-            ></div>
-          )}
-        </form>
+          ))
+        )}
       </div>
+      
+      {/* 消息详情弹窗 */}
+      {selectedMessage && (
+        <div className="message-modal">
+          <div className="modal-content">
+            <button className="close-btn" onClick={() => setSelectedMessage(null)}>×</button>
+            <h2>私信详情</h2>
+            <div className="message-header">
+              <p><strong>发件人:</strong> {selectedMessage.senderId}</p>
+              <p><strong>收件人:</strong> {selectedMessage.receiverId}</p>
+              <p><strong>时间:</strong> {new Date(selectedMessage.createTime).toLocaleString()}</p>
+              <p><strong>状态:</strong> {selectedMessage.isRead ? '已读' : '未读'}</p>
+            </div>
+            <div className="message-body">
+              {selectedMessage.content}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* 新建消息弹窗 */}
+      {(isComposing || isReplying) && (
+        <div className="compose-modal">
+          <div className="modal-content">
+            <button className="close-btn" onClick={() => {
+              setIsComposing(false);
+              setIsReplying(false);
+            }}>×</button>
+            
+            <h2>{isReplying ? '回复私信' : '新建私信'}</h2>
+            
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const receiver = isReplying 
+                ? replyReceiver 
+                : e.target.receiverId.value;
+              
+              sendMessage(receiver, e.target.content.value);
+              
+              setIsComposing(false);
+              setIsReplying(false);
+            }}>
+              <div className="form-group">
+                <label>收件人ID:</label>
+                <input 
+                  type="text" 
+                  name="receiverId" 
+                  defaultValue={isReplying ? replyReceiver : ''} 
+                  disabled={isReplying}
+                  required 
+                />
+              </div>
+              
+              <div className="form-group">
+                <label>内容:</label>
+                <textarea name="content" rows="4" required></textarea>
+              </div>
+              
+              <div className="form-actions">
+                <button type="submit">发送</button>
+                <button type="button" onClick={() => {
+                  setIsComposing(false);
+                  setIsReplying(false);
+                }}>
+                  取消
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default Chat;
+export default PrivateMessageSystem;

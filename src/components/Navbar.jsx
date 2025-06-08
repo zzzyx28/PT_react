@@ -33,6 +33,9 @@ export default function Navbar() {
             <Button color="inherit" component={Link} to="/chat">
               Chat
             </Button>
+            <Button color="inherit" component={Link} to="/ai">
+              AI
+            </Button>
             <Button color="inherit" component={Link} to="/me">
               Me
             </Button>
