@@ -34,21 +34,41 @@ export default function Users() {
   const [editingLevels, setEditingLevels] = useState({});
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/user/all-users")
-      .then(response => response.json())
-      .then(data => {
-        const formattedUsers = data.map(user => ({
-          id: user.userId,
-          username: user.username,
-          level: user.level,
-          banned: user.isBanned === 1
-        }));
-        setUsers(formattedUsers);
-      })
-      .catch(error => {
-        console.error("获取用户列表失败:", error);
-      });
-  }, []);
+  // 获取用户列表
+  fetch("http://localhost:8080/api/user/all-users")
+    .then(response => response.json())
+    .then(data => {
+      const formattedUsers = data.map(user => ({
+        id: user.userId,
+        username: user.username,
+        level: user.level,
+        banned: user.isBanned === 1
+      }));
+      setUsers(formattedUsers);
+    })
+    .catch(error => {
+      console.error("获取用户列表失败:", error);
+    });
+
+  // 获取邀请码列表
+  fetch("http://localhost:8080/api/admin/invite-code/list")
+    .then(response => response.json())
+    .then(data => {
+      const formattedInvites = data
+  .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+  .map(item => ({
+    code: item.code,
+    status: item.status === "ACTIVE" ? "未使用" : "已使用",
+    userId: item.status === "ACTIVE" ? "无" : item.usedBy
+  }));
+
+      setInvites(formattedInvites);
+    })
+    .catch(error => {
+      console.error("获取邀请码列表失败:", error);
+    });
+}, []);
+
 
   const handleOpenDialog = (content, onConfirm, onlyInfo = false) => {
     setDialogContent(content);
@@ -167,14 +187,47 @@ export default function Users() {
     }
   };
 
-  const generateInviteCode = () => {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let code = "";
-    for (let i = 0; i < 8; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
+  const generateInviteCode = async () => {
+  try {
+    const response = await fetch("http://localhost:8080/api/admin/invite-code/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: "creatorId=0"
+    });
+
+    if (response.ok) {
+      const message = await response.text();
+      console.log("邀请码创建成功:", message);
+
+      // 再次请求邀请码列表
+      const inviteRes = await fetch("http://localhost:8080/api/admin/invite-code/list");
+      if (!inviteRes.ok) throw new Error("邀请码列表更新失败");
+      const inviteData = await inviteRes.json();
+
+      const formattedInvites = inviteData
+  .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+  .map(item => ({
+    code: item.code,
+    status: item.status === "ACTIVE" ? "未使用" : "已使用",
+    userId: item.status === "ACTIVE" ? "无" : item.usedBy
+  }));
+
+
+      setInvites(formattedInvites);
+      handleOpenDialog("邀请码创建成功", () => {}, true);
+    } else {
+      const error = await response.text();
+      console.error("邀请码创建失败:", error);
+      handleOpenDialog(`创建失败: ${error}`, () => {}, true);
     }
-    setInvites(prev => [...prev, { code, status: "未使用", userId: "-" }]);
-  };
+  } catch (error) {
+    console.error("请求异常:", error);
+    handleOpenDialog(`创建异常: ${error.message}`, () => {}, true);
+  }
+};
+
 
   return (
     <Box sx={{ p: 2, height: "calc(100vh - 64px)", width: "100%", display: "flex", flexDirection: "column" }}>
@@ -279,7 +332,9 @@ export default function Users() {
             </TableBody>
           </Table>
         </TableContainer>
+         <Box sx={{ height: 100 }} />
       </Box>
+      
 
       {/* 通用弹窗 */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
