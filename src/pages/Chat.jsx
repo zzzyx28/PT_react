@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SmileOutlined } from '@ant-design/icons';
-import 'emoji-picker-element';
+//  import 'emoji-picker-element';
 
 const initialUsers = [
   { id: 1, name: '用户A', unread: 3 },

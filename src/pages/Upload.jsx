@@ -25,34 +25,43 @@ export default function Upload() {
     setFile(e.target.files[0])
   }
 
-  const handleUpload = async () => {
-    if (!file) {
-      setErrorMessage('请选择一个 .torrent 文件')
-      return
-    }
-
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('category', category)
-    formData.append('description', description)
-    formData.append('uid', '123456') // 可选：模拟用户 ID，后端也能从 Principal 获取
-
-    try {
-      const response = await axios.post('http://localhost:8080/api/torrents/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      })
-
-      setSuccessMessage(`上传成功：${response.data.title || response.data.filename}`)
-      setFile(null)
-      setCategory('')
-      setDescription('')
-    } catch (error) {
-      console.error('上传失败', error)
-      setErrorMessage(error.response?.data || '上传失败，请稍后再试')
-    }
+ const handleUpload = async () => {
+  if (!file) {
+    setErrorMessage('请选择一个 .torrent 文件')
+    return
   }
+
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('category', category)
+  formData.append('description', description)
+
+  // 从 localStorage 读取 userId
+  const userId = localStorage.getItem('userId')
+  if (userId) {
+    formData.append('uid', userId)
+  } else {
+    setErrorMessage('未找到用户ID，请重新登录')
+    return
+  }
+
+  try {
+    const token = localStorage.getItem('token') // 如果需要 token 带上
+    const response = await axios.post('http://localhost:8080/api/torrents/upload', formData, {
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '', // 可选，带 token 认证
+      },
+    })
+
+    setSuccessMessage(`上传成功：${response.data.title || response.data.filename}`)
+    setFile(null)
+    setCategory('')
+    setDescription('')
+  } catch (error) {
+    console.error('上传失败', error)
+    setErrorMessage(error.response?.data || '上传失败，请稍后再试')
+  }
+}
 
   return (
     <Container maxWidth="sm" sx={{ mt: 5 }}>

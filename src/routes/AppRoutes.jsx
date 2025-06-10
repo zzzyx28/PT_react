@@ -12,6 +12,9 @@ import Announcement from '../pages/Announcement'
 
 import TorrentList from '../pages/TorrentList'
 
+import UserRanking from '../pages/UserRanking'
+
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -25,6 +28,7 @@ export default function AppRoutes() {
       <Route path="/chat" element={<Chat />} />
       <Route path="/me" element={<MePage />} />
       <Route path="/torrents" element={<TorrentList />} />
+      <Route path="/userranking" element={<UserRanking />} />
 
       
 

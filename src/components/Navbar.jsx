@@ -39,6 +39,10 @@ export default function Navbar() {
             <Button color="inherit" component={Link} to="/torrents">
               TorrentList
             </Button>
+             <Button color="inherit" component={Link} to="/userranking">
+             userranking
+            </Button>
+
           </Box>
         </Toolbar>
       </AppBar>
