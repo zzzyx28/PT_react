@@ -28,7 +28,7 @@ export default function ResourceManager() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/torrents/list?page=${page}&size=${size}`);
+      const response = await fetch(`http://localhost:8080/api/torrents/list?page=${page}&size=${size}`);
       if (!response.ok) {
         throw new Error(`请求失败，状态码 ${response.status}`);
       }
