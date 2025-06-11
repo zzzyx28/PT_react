@@ -1,87 +1,122 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Paper,
   Button,
-} from '@mui/material'
-import axios from 'axios'
+  CircularProgress,
+} from '@mui/material';
 
-export default function Resources() {
-  const [resources, setResources] = useState([])
-  const [error, setError] = useState(null)
+export default function ResourceManager() {
+  const [resources, setResources] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // 分页相关（你后端默认page=1,size=10）
+  const [page, setPage] = useState(1);
+  const size = 10;
 
   useEffect(() => {
-    const fetchResources = async () => {
-      try {
-        // 替换为你自己的 API 地址
-        const response = await axios.get('http://localhost:8080/api/resources/list')
-        setResources(response.data)
-      } catch (err) {
-        console.error('获取资源失败:', err)
-        setError('加载资源失败，请稍后重试。')
+  const fetchResources = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/torrents/list?page=${page}&size=${size}`);
+      if (!response.ok) {
+        throw new Error(`请求失败，状态码 ${response.status}`);
       }
+      const data = await response.json();
+      console.log('接口返回数据:', data);
+      setResources(data);
+    } catch (err) {
+      setError(err.message);
+      setResources([]);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    fetchResources()
-  }, [])
+  fetchResources();
+}, [page]);
 
-  const handleDelete = (resource) => {
-    console.log('删除资源：', resource)
-    alert(`已点击删除「${resource.title}」，尚未连接后端。`)
-  }
+
+  const handleDelete = (id) => {
+    // 这里示例只是前端删除状态，不调用后端删除接口
+    setResources(prev => prev.filter(item => item.torrentId !== id));
+  };
 
   return (
-    <Box sx={{ minHeight: '100vh', width: '100vw', backgroundColor: '#f0f2f5', p: 4 }}>
-      <Typography variant="h4" gutterBottom>
+    <Box sx={{ px: 4, pt: 1, width: '100%' }}>
+      <Typography variant="h4" gutterBottom sx={{ mt: 0 }}>
         资源管理
       </Typography>
 
-      {error ? (
-        <Typography color="error">{error}</Typography>
-      ) : (
-        <Paper elevation={3} sx={{ width: '100%', overflowX: 'auto', borderRadius: 2 }}>
-          <Table sx={{ minWidth: 1000 }}>
+      {loading && <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>}
+
+      {error && (
+        <Typography color="error" sx={{ mb: 2 }}>
+          {error}
+        </Typography>
+      )}
+
+      {!loading && !error && (
+        <TableContainer component={Paper} sx={{ mt: 1 }}>
+          <Table>
             <TableHead>
-              <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+              <TableRow>
                 <TableCell>标题</TableCell>
                 <TableCell>描述</TableCell>
-                <TableCell>上传时间</TableCell>
-                <TableCell>上传用户</TableCell>
-                <TableCell>浏览</TableCell>
-                <TableCell>操作</TableCell>
+                <TableCell>创建时间</TableCell>
+                <TableCell align="center">操作</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {resources.map((resource) => (
-                <TableRow key={resource.resourceId} hover>
-                  <TableCell>{resource.title}</TableCell>
-                  <TableCell>{resource.description}</TableCell>
-                  <TableCell>{resource.createTime}</TableCell>
-                  <TableCell>{resource.username}</TableCell>
-                  <TableCell>{resource.views}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      size="small"
-                      onClick={() => handleDelete(resource)}
-                    >
-                      删除
-                    </Button>
+              {resources.length > 0 ? (
+                resources.map((row) => (
+                  <TableRow key={row.torrentId}>
+                    <TableCell>{row.title}</TableCell>
+                    <TableCell>{row.description}</TableCell>
+                    <TableCell>{row.createTime}</TableCell>
+                    <TableCell align="center">
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        size="small"
+                        sx={{ mr: 1 }}
+                        // 这里下载逻辑你自己写
+                        onClick={() => alert(`下载种子：${row.filename}`)}
+                      >
+                        下载
+                      </Button>
+                      <Button
+                        variant="contained"
+                        color="error"
+                        size="small"
+                        onClick={() => handleDelete(row.torrentId)}
+                      >
+                        删除
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={4} align="center">
+                    暂无资源
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
-        </Paper>
+        </TableContainer>
       )}
     </Box>
-  )
+  );
 }
