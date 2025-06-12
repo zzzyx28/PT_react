@@ -18,38 +18,54 @@ export default function ResourceManager() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // 分页相关（你后端默认page=1,size=10）
+  // 分页相关
   const [page, setPage] = useState(1);
   const size = 10;
 
   useEffect(() => {
-  const fetchResources = async () => {
-    setLoading(true);
-    setError(null);
+    const fetchResources = async () => {
+      setLoading(true);
+      setError(null);
 
-    try {
-      const response = await fetch(`http://localhost:8080/api/torrents/list?page=${page}&size=${size}`);
-      if (!response.ok) {
-        throw new Error(`请求失败，状态码 ${response.status}`);
+      try {
+        const response = await fetch(`http://localhost:8080/api/torrents/list?page=${page}&size=${size}`);
+        if (!response.ok) {
+          throw new Error(`请求失败，状态码 ${response.status}`);
+        }
+        const data = await response.json();
+        console.log('接口返回数据:', data);
+        setResources(data);
+      } catch (err) {
+        setError(err.message);
+        setResources([]);
+      } finally {
+        setLoading(false);
       }
-      const data = await response.json();
-      console.log('接口返回数据:', data);
-      setResources(data);
-    } catch (err) {
-      setError(err.message);
-      setResources([]);
-    } finally {
-      setLoading(false);
-    }
+    };
+
+    fetchResources();
+  }, [page]);
+
+  const handleDownload = (torrentId) => {
+    window.open(`http://localhost:8080/api/torrents/download/${torrentId}`, '_blank');
   };
 
-  fetchResources();
-}, [page]);
+  const handleDelete = async (torrentId) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/torrents/delete/${torrentId}`, {
+        method: 'DELETE',
+      });
 
+      if (!response.ok) {
+        const errorMsg = await response.text();
+        throw new Error(`删除失败：${errorMsg}`);
+      }
 
-  const handleDelete = (id) => {
-    // 这里示例只是前端删除状态，不调用后端删除接口
-    setResources(prev => prev.filter(item => item.torrentId !== id));
+      // 删除成功，从状态中移除
+      setResources(prev => prev.filter(item => item.torrentId !== torrentId));
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
   return (
@@ -58,7 +74,11 @@ export default function ResourceManager() {
         资源管理
       </Typography>
 
-      {loading && <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>}
+      {loading && (
+        <Box sx={{ textAlign: 'center', py: 4 }}>
+          <CircularProgress />
+        </Box>
+      )}
 
       {error && (
         <Typography color="error" sx={{ mb: 2 }}>
@@ -90,8 +110,7 @@ export default function ResourceManager() {
                         color="primary"
                         size="small"
                         sx={{ mr: 1 }}
-                        // 这里下载逻辑你自己写
-                        onClick={() => alert(`下载种子：${row.filename}`)}
+                        onClick={() => handleDownload(row.torrentId)}
                       >
                         下载
                       </Button>
