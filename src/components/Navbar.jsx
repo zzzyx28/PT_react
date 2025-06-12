@@ -1,59 +1,66 @@
-import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material'
+import React from 'react'
+import { AppBar, Toolbar, Typography, Box, Button } from '@mui/material'
 import { Link } from 'react-router-dom'
 
-
 export default function Navbar({ showBackButton = false }) {
+  const adminId = '093dd981-e6a0-4adc-b774-c9e4ec75e392'
+  const userId = localStorage.getItem('userId')
+  const isAdmin = userId === adminId
+
   return (
     <AppBar position="fixed" sx={{ height: 64 }}>
-      <Toolbar sx={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        height: '100%',
-        overflow: 'hidden', // 防止内容溢出
-      }}>
+      <Toolbar
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          height: '100%',
+          overflow: 'hidden',
+        }}
+      >
         <Typography variant="h6" sx={{ ml: 2 }}>
           My PT Site
         </Typography>
-        <Box sx={{ 
-          display: 'flex', 
-          gap: 2, 
-          mr: 2,
-          overflowX: 'auto', // 允许横向滚动
-          whiteSpace: 'nowrap', // 防止换行
-        }}>
-           <Button color="inherit" component={Link} to="/home">
-              Home
-            </Button>
-            <Button color="inherit" component={Link} to="/announcement">
-              Announcement
-            </Button>
-            <Button color="inherit" component={Link} to="/forum">
-              Forum
-            </Button>
-            <Button color="inherit" component={Link} to="/search">
-              Search
-            </Button>
-            <Button color="inherit" component={Link} to="/upload">
-              Upload
-            </Button>
-            <Button color="inherit" component={Link} to="/chat">
-              Chat
-            </Button>
-            <Button color="inherit" component={Link} to="/me">
-              Me
-            </Button>
-            <Button color="inherit" component={Link} to="/torrents">
-              TorrentList
-            </Button>
-             <Button color="inherit" component={Link} to="/userranking">
-             userranking
-            </Button>
-              <Button color="inherit" component={Link} to="/management">
-            Management
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 2,
+            mr: 2,
+            overflowX: 'auto',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <Button color="inherit" component={Link} to="/home">
+            首页
+          </Button>
+          <Button color="inherit" component={Link} to="/torrents">
+            种子列表
+          </Button>
+          <Button color="inherit" component={Link} to="/announcement">
+            公告
+          </Button>
+          <Button color="inherit" component={Link} to="/forum">
+            论坛
+          </Button>
+          {/* <Button color="inherit" component={Link} to="/search">
+            Search
+          </Button> */}
+          <Button color="inherit" component={Link} to="/upload">
+            上传
+          </Button>
+          <Button color="inherit" component={Link} to="/chat">
+            私信
+          </Button>
+          <Button color="inherit" component={Link} to="/me">
+            个人中心
           </Button>
           
+          {isAdmin && (
+            <Button color="inherit" component={Link} to="/management">
+              后台管理
+            </Button>
+          )}
         </Box>
       </Toolbar>
     </AppBar>
-  );
+  )
 }
