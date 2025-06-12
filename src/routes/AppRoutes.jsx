@@ -13,6 +13,11 @@ import Post from '../pages/Post'
 import TorrentList from '../pages/TorrentList'
 
 import UserRanking from '../pages/UserRanking'
+import Management from '../pages/Management'
+import Users from '../pages/Users' // 导入Users组件
+import Statistics from '../pages/Statistics' // 导入Statistics组件
+import Resources from '../pages/Resources'
+
 
 
 export default function AppRoutes() {
@@ -31,6 +36,12 @@ export default function AppRoutes() {
       <Route path="/torrents" element={<TorrentList />} />
       <Route path="/userranking" element={<UserRanking />} />
       <Route path="/post/:postId" element={<Post />} />
+        <Route path="/management" element={<Management />}>
+        <Route path="users" element={<Users />} />
+        <Route path="statistics" element={<Statistics />} />
+        <Route path="resources" element={<Resources />} />
+      </Route>
+
       
 
 
