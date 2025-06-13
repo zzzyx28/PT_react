@@ -1,222 +1,191 @@
+// Forum.jsx
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './Forum.css'
 
 const Forum = () => {
-  const [activeTab, setActiveTab] = useState('1');
-  const [posts, setPosts] = useState([]);
-  const [isComposing, setIsComposing] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  // 从本地存储获取用户信息
+  const [activeTab, setActiveTab] = useState('all');
+  const [posts, setPosts] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [newPost, setNewPost] = useState({ title: '', content: '', category: 0 });
+  
   const username = localStorage.getItem('username');
   const token = localStorage.getItem('token');
-
+  
   // 获取帖子列表
   const fetchPosts = async () => {
     try {
-      setLoading(true);
-      const config = {
-        headers: { Authorization: `Bearer ${token}` }
-      };
-
-      let response;
-      if (activeTab === 'my') {
-        // 获取我的帖子
-        response = await axios.get('http://localhost:8080/api/forum/list', {
-          params: { page: currentPage, size: pageSize },
-          ...config
-        });
-        // 前端过滤当前用户的帖子
-        const myPosts = response.data.filter(post => post.ownerId === username);
-        setPosts(myPosts);
-      } else {
-        // 按分类获取帖子
-        response = await axios.get('http://localhost:8080/api/forum/listByCategory', {
-          params: { category: activeTab, page: currentPage, size: pageSize },
-          ...config
-        });
-        setPosts(response.data);
+      let url = `http://localhost:8080/api/forum/list?page=1&size=200`;
+      if (activeTab >= 0 && activeTab <= 4) {
+        url = `http://localhost:8080/api/forum/listByCategory?category=${activeTab}&page=1&size=200`;
       }
       
-      // 计算总页数（实际项目中应从响应头获取）
-      setTotalPages(Math.ceil(100 / pageSize)); // 假设总数100条
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const data = await response.json();
+      setPosts(data);
     } catch (error) {
       console.error('获取帖子失败:', error);
-    } finally {
-      setLoading(false);
     }
   };
-
-    // 发帖
-  const sendPost = async (title, content) => {
+  
+  // 创建新帖子
+  const handleCreatePost = async () => {
     try {
-
-      await axios.post('http://localhost:8080/api/forum/send', {
-        params: { title , content },
-        headers: { Authorization: `Bearer ${token}` }
-    });
-      fetchPosts(); // 刷新列表
+      const response = await fetch('http://localhost:8080/api/forum/create', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ownerId: username,
+          forum: newPost
+        })
+      });
+      
+      if (response.ok) {
+        const newPostData = await response.json();
+        setPosts([newPostData, ...posts]);
+        setNewPost({ title: '', content: '', category: 0 });
+        setShowForm(false); // 创建成功后自动隐藏表单
+      }
     } catch (error) {
-      console.error('发帖失败:', error);
+      console.error('创建帖子失败:', error);
     }
   };
-
+  
   // 删除帖子
   const handleDeletePost = async (forumId) => {
     try {
-      const config = {
-        headers: { Authorization: `Bearer ${token}` }
-      };
-      
-      await axios.delete('http://localhost:8080/api/forum/delete', {
-        params: { forumId },
-        ...config
+      const response = await fetch(`http://localhost:8080/api/forum/delete?forumId=${forumId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      // 更新帖子列表
-      setPosts(posts.filter(post => post.forumId !== forumId));
+      if (response.ok) {
+        setPosts(posts.filter(post => post.forumId !== forumId));
+      }
     } catch (error) {
       console.error('删除帖子失败:', error);
     }
   };
-
-  // 监听标签页、分页变化
-  useEffect(() => {
-    fetchPosts();
-  }, [activeTab, currentPage, pageSize]);
-
-  // 渲染删除按钮（条件判断）
-  const renderDeleteButton = (post) => {
-    const canDelete = username === 'admin' || username === post.ownerId;
-    return canDelete && (
-      <button 
-        className="delete-btn"
-        onClick={() => handleDeletePost(post.forumId)}
-      >
-        删除
-      </button>
-    );
+  
+  // 根据标签筛选帖子
+  const getFilteredPosts = () => {
+    if (activeTab === 'all') return posts;
+    if (activeTab === 'mine') return posts.filter(post => post.ownerId === username);
+    return posts.filter(post => post.category.toString() === activeTab);
   };
 
-  // 分页控件
-  const renderPagination = () => (
-    <div className="pagination">
-      <select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
-        {[5, 10, 20, 50].map(size => (
-          <option key={size} value={size}>{size}条/页</option>
-        ))}
-      </select>
-      
-      <button 
-        disabled={currentPage === 1}
-        onClick={() => setCurrentPage(currentPage - 1)}
-      >
-        上一页
-      </button>
-      
-      <span>{currentPage} / {totalPages}</span>
-      
-      <button 
-        disabled={currentPage === totalPages}
-        onClick={() => setCurrentPage(currentPage + 1)}
-      >
-        下一页
-      </button>
-    </div>
-  );
+  useEffect(() => {
+    fetchPosts();
+  }, [activeTab]);
+
+  // 修复的表单切换逻辑
+  const handleTabClick = (tab) => {
+    if (tab === 'new') {
+      // 切换发帖表单的显示状态
+      setShowForm(prev => !prev);
+      // 如果用户点击发帖按钮但表单是打开的，需要重置活动标签
+      if (showForm) {
+        setActiveTab('all');
+      }
+    } else {
+      setActiveTab(tab);
+      setShowForm(false); // 切换到其他标签时隐藏发帖表单
+    }
+  };
 
   return (
-    <div className="forum">
-      <div className="tabs">
-        {['0', '1', '2', '3', '4', 'my'].map(tab => (
-          <button
-            key={tab}
-            className={activeTab === tab ? 'active' : ''}
-            onClick={() => {
-              setActiveTab(tab);
-              setCurrentPage(1);
-            }}
+    <div className="forum-container">
+      {/* 顶部导航 */}
+      <div className="forum-tabs">
+        {['all', '0', '1', '2', '3', '4', 'new', 'mine'].map(tab => (
+          <button 
+            key={tab} 
+            className={`tab-button ${
+              tab === 'new' ? (showForm ? 'active' : '') : 
+              (activeTab === tab ? 'active' : '')
+            }`}
+            onClick={() => handleTabClick(tab)}
           >
-            {tab === 'my' ? '我的帖子' : `板块 ${tab}`}
+            {tab === 'all' ? '全部论坛' : 
+             tab === 'new' ? '发帖' : 
+             tab === 'mine' ? '我的帖子' : `板块${tab}`}
           </button>
         ))}
       </div>
 
-      {loading ? (
-        <p>加载中...</p>
-      ) : (
-        <>
-          <div className="post-list">
-            {posts.map(post => (
-              <div key={post.forumId} className="post-item">
-                <h3 onClick={() => navigate(`/post/${post.forumId}`)}>
-                  {post.title || 'null'}
-                </h3>
-                <p>作者: {post.ownerId}</p>
-                <p>时间: {new Date(post.createTime).toLocaleString()}</p>
-                {renderDeleteButton(post)}
-              </div>
+      {/* 发帖表单 */}
+      {showForm && (
+        <div className="post-form">
+          <h3>创建新帖子</h3>
+          <input 
+            type="text" 
+            placeholder="标题" 
+            value={newPost.title}
+            onChange={e => setNewPost({...newPost, title: e.target.value})}
+            required
+          />
+          <textarea 
+            placeholder="内容" 
+            value={newPost.content}
+            onChange={e => setNewPost({...newPost, content: e.target.value})}
+            required
+          />
+          <select 
+            value={newPost.category} 
+            onChange={e => setNewPost({...newPost, category: parseInt(e.target.value)})}
+          >
+            {[0,1,2,3,4].map(num => (
+              <option key={num} value={num}>板块{num}</option>
             ))}
-          </div>
-          {renderPagination()}
-        </>
-      )}
-
-            {/* 新建消息按钮 */}
-      <button className="compose-btn" onClick={() => setIsComposing(true)}>
-        发帖
-      </button>
-
-{/* 新建消息弹窗 */}
-      {(isComposing) && (
-        <div className="compose-modal">
-          <div className="modal-content">
-            <button className="close-btn" onClick={() => {
-              setIsComposing(false);
-            }}>×</button>
-            
-            <h2>发帖</h2>
-            
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              
-              sendPost(e.target.title.value, e.target.content.value);
-              
-              setIsComposing(false);
-            }}>
-              <div className="form-group">
-                <label>标题:</label>
-                <input 
-                  type="text" 
-                  name="title" 
-                  required 
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>正文:</label>
-                <textarea name="content" rows="4" required></textarea>
-              </div>
-              
-              <div className="form-actions">
-                <button type="submit">发送</button>
-                <button type="button" onClick={() => {
-                  setIsComposing(false);
-                }}>
-                  取消
-                </button>
-              </div>
-            </form>
+          </select>
+          <div className="form-buttons">
+            <button onClick={handleCreatePost}>提交</button>
+            <button onClick={() => {
+              setShowForm(false);
+              setActiveTab('all');
+            }}>取消</button>
           </div>
         </div>
       )}
 
+      {/* 帖子列表 */}
+      <div className="post-list">
+        {getFilteredPosts().map(post => {
+          const canDelete = username === 'admin' || username === post.ownerId;
+          
+          return (
+            <div key={post.forumId} className="post-item">
+              <div className="post-header">
+                <h3 onClick={() => navigate(`/post/${post.forumId}`)}>
+                  {post.title}
+                </h3>
+                {canDelete && (
+                  <button 
+                    className="delete-button"
+                    onClick={() => handleDeletePost(post.forumId)}
+                  >
+                    删除
+                  </button>
+                )}
+              </div>
+              <p className="post-content">{post.content}</p>
+              <div className="post-meta">
+                <span>作者: {post.ownerId}</span>
+                <span>分类: {post.category}</span>
+                <span>时间: {new Date(post.createTime).toLocaleString()}</span>
+                {/* <span>浏览: {post.views || 0} 回复: {post.replies || 0}</span> */}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

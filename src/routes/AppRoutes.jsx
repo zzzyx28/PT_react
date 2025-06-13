@@ -35,7 +35,7 @@ export default function AppRoutes() {
       <Route path="/me" element={<MePage />} />
       <Route path="/torrents" element={<TorrentList />} />
       <Route path="/userranking" element={<UserRanking />} />
-      <Route path="/post/:postId" element={<Post />} />
+      <Route path="/post/:forumId" element={<Post />} />
         <Route path="/management" element={<Management />}>
         <Route path="users" element={<Users />} />
         <Route path="statistics" element={<Statistics />} />

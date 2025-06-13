@@ -1,6 +1,6 @@
 /* 基础样式 */
 .private-messages-container {
-  width: 80vw;
+  width: 100vw;
   height: calc(100vh - 120px); /* 减去导航栏高度 */
   margin: 0 auto;
   display: flex;

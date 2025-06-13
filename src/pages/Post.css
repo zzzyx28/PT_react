@@ -1,0 +1,41 @@
+/* 通用样式 */
+.loading, .error-message, .post-not-found {
+  padding: 40px;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+.loading {
+  color: #666;
+}
+
+.error-message {
+  color: #d32f2f;
+  background-color: #ffebee;
+  border-radius: 8px;
+  padding: 30px;
+  margin: 20px;
+}
+
+.post-not-found {
+  color: #1976d2;
+  background-color: #e3f2fd;
+  border-radius: 8px;
+  padding: 30px;
+  margin: 20px;
+}
+
+/* 表单字段验证 */
+input:invalid, textarea:invalid {
+  border-color: #f44336;
+  box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.2);
+}
+
+/* 空评论提示 */
+.no-comments {
+  text-align: center;
+  color: #757575;
+  padding: 20px;
+  border: 1px dashed #ddd;
+  border-radius: 8px;
+}

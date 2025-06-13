@@ -1,122 +1,206 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import './Post.css'
 
-const Post = ({ username }) => {
-  const { postId } = useParams();
+const Post = () => {
+  const { forumId } = useParams();
+  const navigate = useNavigate();
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
-
-  useEffect(() => {
-    // 获取帖子详情
-    const fetchPost = async () => {
-      // 实际后端应提供单个帖子接口，这里暂用全部接口过滤
-      const response = await fetch('http://localhost:8080/api/forum/list');
-      const data = await response.json();
-      const foundPost = data.find(p => p.forumId === postId);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  const username = localStorage.getItem('username');
+  const token = localStorage.getItem('token');
+  
+  // 获取帖子详情和评论
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // 获取帖子详情
+      const postResponse = await fetch(`http://localhost:8080/api/forum/list?forumId=${forumId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!postResponse.ok) {
+        throw new Error('获取帖子详情失败');
+      }
+      
+      const postData = await postResponse.json();
+      const foundPost = Array.isArray(postData) 
+        ? postData.find(p => p.forumId === forumId)
+        : postData;
+      
+      if (!foundPost) {
+        throw new Error('帖子未找到');
+      }
+      
       setPost(foundPost);
-    };
-
-    // 获取评论列表
-    const fetchComments = async () => {
-      // 实际后端应提供按帖子ID查询评论接口，这里在前端模拟
-      const storedComments = JSON.parse(localStorage.getItem('comments')) || [];
-      const postComments = storedComments.filter(c => c.forumId === postId);
-      setComments(postComments);
-    };
-
-    fetchPost();
-    fetchComments();
-  }, [postId]);
-
+      
+      // 获取评论
+      const commentResponse = await fetch(`http://localhost:8080/api/comment/list?forumId=${forumId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!commentResponse.ok) {
+        throw new Error('获取评论失败');
+      }
+      
+      const commentData = await commentResponse.json();
+      setComments(commentData);
+      
+    } catch (err) {
+      console.error('数据获取错误:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // 添加评论
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
-
-    const newCommentObj = {
-      forumId: postId,
-      userId: username,
-      content: newComment,
-      commentId: `comment-${Date.now()}`
-    };
-
-    const response = await fetch('http://localhost:8080/api/comment/add', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        forumId: postId,
-        content: newComment
-      })
-    });
-
-    if (response.ok) {
-      // 保存到本地和状态
-      const savedComments = [...comments, newCommentObj];
-      setComments(savedComments);
-      localStorage.setItem('comments', JSON.stringify(savedComments));
-      setNewComment('');
-    }
-  };
-
-  const handleDeleteComment = async (commentId) => {
-    if (!window.confirm('确定删除该评论吗?')) return;
     
-    const response = await fetch(`http://localhost:8080/api/comment/delete?commentId=${commentId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-    if (response.ok) {
-      const updatedComments = comments.filter(c => c.commentId !== commentId);
-      setComments(updatedComments);
-      localStorage.setItem('comments', JSON.stringify(updatedComments));
+    try {
+      const response = await fetch('http://localhost:8080/api/comment/add', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          forumId,
+          content: newComment
+        })
+      });
+      
+      if (response.ok) {
+        const newCommentData = await response.json();
+        setComments(prev => [...prev, newCommentData]);
+        setNewComment('');
+        
+        // 更新帖子回复计数
+        if (post && post.replies !== undefined) {
+          setPost(prev => ({ ...prev, replies: prev.replies + 1 }));
+        }
+      }
+    } catch (error) {
+      console.error('添加评论失败:', error);
+      setError('添加评论失败，请重试');
     }
   };
+  
+  // 删除评论
+  const handleDeleteComment = async (commentId) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/comment/delete?commentId=${commentId}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        setComments(prev => prev.filter(comment => comment.commentId !== commentId));
+        
+        // 更新帖子回复计数
+        if (post && post.replies !== undefined) {
+          setPost(prev => ({ ...prev, replies: prev.replies - 1 }));
+        }
+      }
+    } catch (error) {
+      console.error('删除评论失败:', error);
+      setError('删除评论失败');
+    }
+  };
+  
+  useEffect(() => {
+    if (forumId) {
+      fetchData();
+    }
+  }, [forumId]);
 
-  if (!post) return <div>加载中...</div>;
+  if (loading) {
+    return <div className="loading">加载中...</div>;
+  }
+  
+  if (error) {
+    return (
+      <div className="error-message">
+        <p>{error}</p>
+        <button onClick={() => navigate('/')}>返回论坛</button>
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div className="post-not-found">
+        <p>帖子未找到</p>
+        <button onClick={() => navigate('/')}>返回论坛</button>
+      </div>
+    );
+  }
 
   return (
-    <div className="post-detail">
-      <div className="post-header">
+    <div className="post-container">
+      <button className="back-button" onClick={() => navigate(-1)}>
+        ← 返回论坛
+      </button>
+      
+      <div className="post-detail">
         <h1>{post.title}</h1>
-        <p className="meta">作者: {post.ownerId} | 发布时间: {post.createTime}</p>
+        <p className="post-content">{post.content}</p>
+        <div className="post-meta">
+          <span>作者: {post.ownerId}</span>
+          <span>分类: {post.category}</span>
+          <span>时间: {new Date(post.createTime).toLocaleString()}</span>
+          {/* <span>浏览: {post.views || 0} 回复: {post.replies || 0}</span> */}
+        </div>
       </div>
-      
-      <div className="post-content">
-        {post.content}
-      </div>
-      
-      <div className="comment-section">
+
+      <div className="comments-section">
         <h2>评论 ({comments.length})</h2>
         
-        <div className="add-comment">
-          <textarea 
+        <div className="comment-form">
+          <textarea
             value={newComment}
             onChange={e => setNewComment(e.target.value)}
-            placeholder="写下您的评论..."
+            placeholder="发表你的评论..."
+            rows={4}
+            required
           />
-          <button onClick={handleAddComment}>发表评论</button>
+          <button onClick={handleAddComment}>提交评论</button>
         </div>
         
-        <div className="comment-list">
-          {comments.map(comment => (
-            <div key={comment.commentId} className="comment-item">
-              <div className="comment-header">
-                <strong>{comment.userId}</strong>
-                <span>{new Date().toLocaleString()}</span>
+        {comments.length > 0 ? (
+          comments.map(comment => {
+            const canDelete = username === 'admin' || username === comment.userId;
+            
+            return (
+              <div key={comment.commentId} className="comment-item">
+                <div className="comment-header">
+                  <span className="comment-author">{comment.userId}</span>
+                  <span className="comment-time">
+                    {new Date(comment.createTime).toLocaleString()}
+                  </span>
+                  {canDelete && (
+                    <button 
+                      className="delete-button small"
+                      onClick={() => handleDeleteComment(comment.commentId)}
+                    >
+                      删除
+                    </button>
+                  )}
+                </div>
+                <p className="comment-content">{comment.content}</p>
               </div>
-              <p>{comment.content}</p>
-              
-              {(username === 'admin' || comment.userId === username) && (
-                <button 
-                  className="delete-comment"
-                  onClick={() => handleDeleteComment(comment.commentId)}
-                >
-                  删除
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
+            );
+          })
+        ) : (
+          <p className="no-comments">暂无评论，成为第一个评论者吧！</p>
+        )}
       </div>
     </div>
   );
