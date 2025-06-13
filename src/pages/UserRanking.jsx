@@ -158,12 +158,12 @@ export default function UserRanking() {
 
         {renderTable('用户下载量排行榜', downloadRanking, [
           { key: 'username', label: '用户名' },
-          { key: 'level', label: '等级' },
+          // { key: 'level', label: '等级' },
           { key: 'downloadCount', label: '下载次数' },
         ])}
 
         {renderTable('种子下载量排行榜', torrentRanking, [
-          { key: 'username', label: '用户名' },
+          { key: 'name', label: '种子名' },
           { key: 'downloadCount', label: '下载次数' },
         ])}
       </Box>
