@@ -44,7 +44,7 @@ export default function Register() {
       console.log(res.data);
       setSuccess(true);
       setTimeout(() => {
-        navigate('/home');
+        navigate('/login');
       }, 2000);
     } catch (err) {
       setError(err.response?.data || 'Registration failed.');
