@@ -151,10 +151,12 @@ const Post = () => {
       
       <div className="post-detail">
         <h1>{post.title}</h1>
-        <p className="post-content">{post.content}</p>
+        <div>
+          <p className="post-content">{post.content}</p>
+        </div>
         <div className="post-meta">
           <span>作者: {post.ownerId}</span>
-          <span>分类: {post.category}</span>
+          {/* <span>分类: {post.category}</span> */}
           <span>时间: {new Date(post.createTime).toLocaleString()}</span>
           {/* <span>浏览: {post.views || 0} 回复: {post.replies || 0}</span> */}
         </div>

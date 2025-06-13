@@ -1,4 +1,4 @@
-// Forum.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Forum.css'
@@ -12,6 +12,15 @@ const Forum = () => {
   
   const username = localStorage.getItem('username');
   const token = localStorage.getItem('token');
+  
+  // 定义板块名称映射
+  const categoryNames = {
+    0: '资源交流区',
+    1: '技术研究院',
+    2: '影音会客厅',
+    3: '玩客实验室',
+    4: '优惠推广区'
+  };
   
   // 获取帖子列表
   const fetchPosts = async () => {
@@ -115,7 +124,7 @@ const Forum = () => {
           >
             {tab === 'all' ? '全部论坛' : 
              tab === 'new' ? '发帖' : 
-             tab === 'mine' ? '我的帖子' : `板块${tab}`}
+             tab === 'mine' ? '我的帖子' : categoryNames[tab]}
           </button>
         ))}
       </div>
@@ -142,7 +151,7 @@ const Forum = () => {
             onChange={e => setNewPost({...newPost, category: parseInt(e.target.value)})}
           >
             {[0,1,2,3,4].map(num => (
-              <option key={num} value={num}>板块{num}</option>
+              <option key={num} value={num}>{categoryNames[num]}</option>
             ))}
           </select>
           <div className="form-buttons">
@@ -175,12 +184,11 @@ const Forum = () => {
                   </button>
                 )}
               </div>
-              <p className="post-content">{post.content}</p>
+              <p className="post-content-1">{post.content}</p>
               <div className="post-meta">
                 <span>作者: {post.ownerId}</span>
-                <span>分类: {post.category}</span>
+                <span>分类: {categoryNames[post.category]}</span>
                 <span>时间: {new Date(post.createTime).toLocaleString()}</span>
-                {/* <span>浏览: {post.views || 0} 回复: {post.replies || 0}</span> */}
               </div>
             </div>
           );

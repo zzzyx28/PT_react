@@ -39,3 +39,53 @@ input:invalid, textarea:invalid {
   border: 1px dashed #ddd;
   border-radius: 8px;
 }
+/* =========== 帖子详情容器 =========== */
+.post-detail {
+  background-color: white;
+  border-radius: 8px;
+  padding: 25px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+  /* 移除固定高度，改为自动适应内容 */
+  min-height: auto; 
+  height: auto;
+  /* 确保内部元素间距合理 */
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* =========== 帖子内容样式 =========== */
+.post-content {
+  /* 移除行数限制和溢出隐藏 */
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: unset;
+  overflow: visible;
+  text-overflow: unset;
+  display: block;
+  
+  /* 完整显示文本 */
+  white-space: pre-wrap; /* 保留换行和空格 */
+  word-wrap: break-word; /* 允许长单词换行 */
+  word-break: break-word; /* 更智能的断词 */
+  
+  /* 优化排版 */
+  line-height: 1.6;
+  font-size: 1.1rem;
+  color: #333;
+  margin: 5px;
+  padding: 0;
+}
+
+/* =========== 响应式调整 =========== */
+@media (max-width: 768px) {
+  .post-detail {
+    padding: 20px;
+    gap: 15px;
+  }
+  
+  .post-content {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+}
