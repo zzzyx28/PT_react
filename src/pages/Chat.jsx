@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './Chat.css';
 import axios from 'axios';
 
@@ -30,35 +30,131 @@ const PrivateMessageSystem = () => {
     return Promise.reject(error);
   });
 
+  // 使用ref存储轮询定时器和第一条消息的时间
+  const pollIntervalRef = useRef(null);
+  const firstMessageTimeRef = useRef(null);
+
   // 获取私信数据
-  const fetchMessages = async () => {
+  const fetchMessages = async (tab = activeTab) => {
     setIsLoading(true);
     try {
       console.log(currentUserId)
-      if (activeTab === 'inbox') {
+      if (tab === 'inbox') {
         // 获取收件箱消息
         const response = await apiClient.get(`/received?userId=${currentUserId}`);
         setMessages(response.data || []);
+        // 存储第一条消息的时间（如果有消息）
+        if (response.data && response.data.length > 0) {
+          firstMessageTimeRef.current = response.data[0].createTime;
+        } else {
+          firstMessageTimeRef.current = null;
+        }
       } else {
         // 获取全部消息
         const allResponse = await apiClient.get(`/all?userId=${currentUserId}`);
         const allMessages = allResponse.data || [];
+        let newMessages = [];
 
-        if (activeTab === 'sent') {
+        if (tab === 'sent') {
           // 过滤出当前用户发送的消息
-          const sentMessages = allMessages.filter(
+          newMessages = allMessages.filter(
             msg => msg.senderId === currentUserId
           );
-          setMessages(sentMessages);
+          // 存储第一条消息的时间（如果有消息）
+          if (newMessages.length > 0) {
+            firstMessageTimeRef.current = newMessages[0].createTime;
+          } else {
+            firstMessageTimeRef.current = null;
+          }
         } else {
           // 显示全部消息
-          setMessages(allMessages);
+          newMessages = allMessages;
+          // 存储第一条消息的时间（如果有消息）
+          if (allMessages.length > 0) {
+            firstMessageTimeRef.current = allMessages[0].createTime;
+          } else {
+            firstMessageTimeRef.current = null;
+          }
         }
+        
+        setMessages(newMessages);
       }
     } catch (error) {
       console.error('获取私信失败:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // 轮询获取新消息数据（只适用于收件箱和全部）
+  const pollForNewMessages = async () => {
+    // 只对收件箱和全部消息标签进行轮询
+    if (activeTab !== 'inbox' && activeTab !== 'all') {
+      return;
+    }
+    
+    try {
+      let newMessages = [];
+      
+      if (activeTab === 'inbox') {
+        // 获取收件箱消息
+        const response = await apiClient.get(`/received?userId=${currentUserId}`);
+        newMessages = response.data || [];
+      } else {
+        // 获取全部消息
+        const allResponse = await apiClient.get(`/all?userId=${currentUserId}`);
+        newMessages = allResponse.data || [];
+      }
+      
+      // 检查是否有新消息
+      let shouldUpdate = false;
+      
+      if (newMessages.length === 0) {
+        // 列表为空，但之前有消息
+        if (messages.length > 0) {
+          shouldUpdate = true;
+        }
+      } else if (firstMessageTimeRef.current === null) {
+        // 之前没有消息，现在有消息了
+        shouldUpdate = true;
+      } else {
+        // 比较第一条消息的时间（最新的消息在数组开头）
+        const latestMessageTime = newMessages[0].createTime;
+        
+        // 时间不同的两种可能：
+        // 1. 有更新的消息（时间更大）
+        // 2. 消息被删除，第一条消息改变了（时间变小）
+        if (latestMessageTime !== firstMessageTimeRef.current) {
+          shouldUpdate = true;
+        }
+      }
+      
+      // 只有检测到变化时才更新消息列表
+      if (shouldUpdate) {
+        setMessages(newMessages);
+        // 更新存储的第一条消息时间
+        if (newMessages.length > 0) {
+          firstMessageTimeRef.current = newMessages[0].createTime;
+        } else {
+          firstMessageTimeRef.current = null;
+        }
+      }
+    } catch (error) {
+      console.error('轮询获取私信失败:', error);
+    }
+  };
+
+  // 开始轮询
+  const startPolling = () => {
+    // 每1000毫秒(1秒)执行一次轮询
+    pollIntervalRef.current = setInterval(pollForNewMessages, 1000);
+  };
+
+  // 停止轮询
+  const stopPolling = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
     }
   };
 
@@ -116,7 +212,22 @@ const PrivateMessageSystem = () => {
   };
 
   useEffect(() => {
+    // 组件挂载时启动轮询
+    startPolling();
+    
+    // 组件卸载时停止轮询
+    return () => {
+      stopPolling();
+    };
+  }, []);
+
+  useEffect(() => {
+    // 标签切换时刷新消息
     fetchMessages();
+    
+    // 更新轮询函数
+    stopPolling();
+    startPolling();
   }, [activeTab]);
 
   return (

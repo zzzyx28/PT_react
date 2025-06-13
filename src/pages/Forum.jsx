@@ -84,11 +84,16 @@ const Forum = () => {
   };
   
   // 根据标签筛选帖子
-  const getFilteredPosts = () => {
-    if (activeTab === 'all') return posts;
-    if (activeTab === 'mine') return posts.filter(post => post.ownerId === username);
-    return posts.filter(post => post.category.toString() === activeTab);
-  };
+// 根据标签筛选帖子并按时间排序
+const getFilteredPosts = () => {
+  let filtered = [];
+  if (activeTab === 'all') filtered = [...posts];
+  else if (activeTab === 'mine') filtered = posts.filter(post => post.ownerId === username);
+  else filtered = posts.filter(post => post.category.toString() === activeTab);
+  
+  // 按创建时间降序排序
+  return filtered.sort((a, b) => new Date(b.createTime) - new Date(a.createTime));
+};
 
   useEffect(() => {
     fetchPosts();
