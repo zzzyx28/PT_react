@@ -137,8 +137,8 @@ export default function TorrentList() {
                 <TableCell>标题</TableCell>
                 <TableCell>描述</TableCell>
                 <TableCell>上传时间</TableCell>
-                <TableCell>评论</TableCell>
-                <TableCell>浏览</TableCell>
+                {/* <TableCell>评论</TableCell>
+                <TableCell>浏览</TableCell> */}
                 <TableCell>做种</TableCell>
                 {/* <TableCell>下载中</TableCell> */}
                 <TableCell>完成</TableCell>
@@ -151,8 +151,8 @@ export default function TorrentList() {
                   <TableCell>{torrent.title}</TableCell>
                   <TableCell>{torrent.description}</TableCell>
                   <TableCell>{torrent.createTime}</TableCell>
-                  <TableCell>{torrent.comments}</TableCell>
-                  <TableCell>{torrent.views}</TableCell>
+                  {/* <TableCell>{torrent.comments}</TableCell>
+                  <TableCell>{torrent.views}</TableCell> */}
                   <TableCell>{torrent.seeders}</TableCell>
                   {/* <TableCell>{torrent.leechers}</TableCell> */}
                   <TableCell>{torrent.completions}</TableCell>

@@ -3,7 +3,7 @@ import { AppBar, Toolbar, Typography, Box, Button } from '@mui/material'
 import { Link } from 'react-router-dom'
 
 export default function Navbar({ showBackButton = false }) {
-  const adminId = '093dd981-e6a0-4adc-b774-c9e4ec75e392'
+  const adminId = '1234'
   const userId = localStorage.getItem('userId')
   const isAdmin = userId === adminId
 
