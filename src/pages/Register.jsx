@@ -7,10 +7,12 @@ export default function Register() {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
+    phone: '', // ✅ 新增字段
     password: '',
     confirm: '',
     inviteCode: '',
   });
+
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
@@ -34,6 +36,7 @@ export default function Register() {
         params: {
           username: formData.username,
           email: formData.email,
+          phone: formData.phone, // ✅ 传入手机号
           password: formData.password,
           inviteCode: formData.inviteCode,
         },
@@ -41,7 +44,7 @@ export default function Register() {
       console.log(res.data);
       setSuccess(true);
       setTimeout(() => {
-        navigate('/');
+        navigate('/home');
       }, 2000);
     } catch (err) {
       setError(err.response?.data || 'Registration failed.');
@@ -70,6 +73,15 @@ export default function Register() {
             label="Email"
             name="email"
             value={formData.email}
+            onChange={handleChange}
+            fullWidth
+            margin="normal"
+            required
+          />
+          <TextField
+            label="Phone Number"
+            name="phone"
+            value={formData.phone}
             onChange={handleChange}
             fullWidth
             margin="normal"

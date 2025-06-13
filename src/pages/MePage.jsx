@@ -114,6 +114,18 @@ const shareRatio = uploadCount > 0 ? (downloadCount / uploadCount).toFixed(2) : 
               sx={{ mt: 1 }}
             />
           </Box>
+            <Button
+    variant="outlined"
+    color="error"
+    size="small"
+    onClick={() => {
+      localStorage.removeItem('token')
+      localStorage.removeItem('userId')
+      window.location.href = '/' // 或使用 navigate('/')，如果你使用 useNavigate
+    }}
+  >
+    登出
+  </Button>
         </Box>
 
         <Divider sx={{ my: 2 }} />

@@ -50,6 +50,12 @@ export default function Navbar({ showBackButton = false }) {
           <Button color="inherit" component={Link} to="/chat">
             私信
           </Button>
+          <Button color="inherit" component={Link} to="/ai">
+            AI问答
+          </Button>
+           <Button color="inherit" component={Link} to="/userranking">
+            排行榜
+          </Button>
           <Button color="inherit" component={Link} to="/me">
             个人中心
           </Button>
