@@ -133,10 +133,10 @@ const AIChatWindow = () => {
 
 // UI样式配置
 const styles = {
-  container: {
-    width: '100%',
-    maxWidth: '800px',
-    height: '80vh',
+container: {
+    width: '80vw',
+    height: '90vh',
+    marginTop: '1.5cm',
     backgroundColor: '#f5f7fb',
     border: '1px solid #d1d5db',
     borderRadius: '12px',
@@ -145,7 +145,7 @@ const styles = {
     flexDirection: 'column',
     fontFamily: 'system-ui, -apple-system, sans-serif',
     overflow: 'hidden'
-  },
+},
   header: {
     backgroundColor: '#4285f4',
     color: 'white',
