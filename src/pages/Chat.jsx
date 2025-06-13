@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './Chat.css'
+import './Chat.css';
 import axios from 'axios';
 
 const PrivateMessageSystem = () => {
@@ -15,52 +15,52 @@ const PrivateMessageSystem = () => {
   const currentUserId = localStorage.getItem('username'); 
 
   // 创建带有token授权的axios实例
-const apiClient = axios.create({
-  baseURL: 'http://localhost:8080/api/message',
-});
+  const apiClient = axios.create({
+    baseURL: 'http://localhost:8080/api/message',
+  });
 
-// 添加请求拦截器，为每个请求添加Authorization头部
-apiClient.interceptors.request.use(config => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-}, error => {
-  return Promise.reject(error);
-});
+  // 添加请求拦截器，为每个请求添加Authorization头部
+  apiClient.interceptors.request.use(config => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  }, error => {
+    return Promise.reject(error);
+  });
 
   // 获取私信数据
-const fetchMessages = async () => {
-  setIsLoading(true);
-  try {
-    console.log(currentUserId)
-    if (activeTab === 'inbox') {
-      // 获取收件箱消息
-      const response = await apiClient.get(`/received?userId=${currentUserId}`);
-      setMessages(response.data || []);
-    } else {
-      // 获取全部消息
-      const allResponse = await apiClient.get(`/all?userId=${currentUserId}`);
-      const allMessages = allResponse.data || [];
-
-      if (activeTab === 'sent') {
-        // 过滤出当前用户发送的消息
-        const sentMessages = allMessages.filter(
-          msg => msg.senderId === currentUserId
-        );
-        setMessages(sentMessages);
+  const fetchMessages = async () => {
+    setIsLoading(true);
+    try {
+      console.log(currentUserId)
+      if (activeTab === 'inbox') {
+        // 获取收件箱消息
+        const response = await apiClient.get(`/received?userId=${currentUserId}`);
+        setMessages(response.data || []);
       } else {
-        // 显示全部消息
-        setMessages(allMessages);
+        // 获取全部消息
+        const allResponse = await apiClient.get(`/all?userId=${currentUserId}`);
+        const allMessages = allResponse.data || [];
+
+        if (activeTab === 'sent') {
+          // 过滤出当前用户发送的消息
+          const sentMessages = allMessages.filter(
+            msg => msg.senderId === currentUserId
+          );
+          setMessages(sentMessages);
+        } else {
+          // 显示全部消息
+          setMessages(allMessages);
+        }
       }
+    } catch (error) {
+      console.error('获取私信失败:', error);
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error('获取私信失败:', error);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   // 标记消息为已读
   const markAsRead = async (messageId) => {
@@ -83,6 +83,7 @@ const fetchMessages = async () => {
     try {
       // 使用apiClient替代axios，自动添加token
       await apiClient.post('/send', {
+        senderId: currentUserId,
         receiverId,
         content
       });
@@ -119,45 +120,53 @@ const fetchMessages = async () => {
   }, [activeTab]);
 
   return (
-    <div className="private-messages">
-      {/* 标签导航 */}
-      <div className="tabs">
-        <button 
-          className={activeTab === 'inbox' ? 'active' : ''}
-          onClick={() => setActiveTab('inbox')}
-        >
-          收件箱
-        </button>
-        <button 
-          className={activeTab === 'sent' ? 'active' : ''}
-          onClick={() => setActiveTab('sent')}
-        >
-          已发送
-        </button>
-        <button 
-          className={activeTab === 'all' ? 'active' : ''}
-          onClick={() => setActiveTab('all')}
-        >
-          全部私信
+    <div className="private-messages-container">
+      {/* 顶部固定区域 */}
+      <div className="messages-header">
+        {/* 标签导航 */}
+        <div className="tabs">
+          <button 
+            className={activeTab === 'inbox' ? 'active' : ''}
+            onClick={() => setActiveTab('inbox')}
+          >
+            收件箱
+          </button>
+          <button 
+            className={activeTab === 'sent' ? 'active' : ''}
+            onClick={() => setActiveTab('sent')}
+          >
+            已发送
+          </button>
+          <button 
+            className={activeTab === 'all' ? 'active' : ''}
+            onClick={() => setActiveTab('all')}
+          >
+            全部私信
+          </button>
+        </div>
+        
+        {/* 新建消息按钮 */}
+        <button className="compose-btn" onClick={() => setIsComposing(true)}>
+          <i className="fas fa-plus"></i> 新建私信
         </button>
       </div>
       
-      {/* 新建消息按钮 */}
-      <button className="compose-btn" onClick={() => setIsComposing(true)}>
-        新建私信
-      </button>
-      
-      {/* 消息列表 */}
-      <div className="message-list">
+      {/* 消息列表区域 - 可滚动 */}
+      <div className="message-list-container">
         {isLoading ? (
-          <p>加载中...</p>
+          <div className="loading-indicator">
+            <i className="fas fa-spinner fa-spin"></i> 加载中...
+          </div>
         ) : messages.length === 0 ? (
-          <p>暂无消息</p>
+          <div className="empty-message">
+            <i className="fas fa-envelope-open-text"></i>
+            <p>暂无消息</p>
+          </div>
         ) : (
           messages.map((message) => (
             <div 
               key={message.messageId} 
-              className={`message-item ${getMessageType(message)}`}
+              className={`message-item ${getMessageType(message)} ${!message.isRead ? 'unread' : ''}`}
               onClick={() => handleViewMessage(message)}
             >
               <div className="message-header">
@@ -167,7 +176,11 @@ const fetchMessages = async () => {
                 
                 <div className="status">
                   {activeTab === 'inbox' ? (
-                    message.isRead ? '已读' : <strong>未读</strong>
+                    message.isRead ? (
+                      <span className="read-status"><i className="fas fa-check"></i> 已读</span>
+                    ) : (
+                      <span className="unread-status"><i className="fas fa-exclamation"></i> 未读</span>
+                    )
                   ) : (
                     message.isRead ? '已读' : '未读'
                   )}
@@ -181,13 +194,13 @@ const fetchMessages = async () => {
                       handleReply(message.senderId);
                     }}
                   >
-                    回复
+                    <i className="fas fa-reply"></i> 回复
                   </button>
                 )}
               </div>
               <div className="message-preview">
-                {message.content.length > 30 
-                  ? `${message.content.substring(0, 30)}...` 
+                {message.content.length > 50 
+                  ? `${message.content.substring(0, 50)}...` 
                   : message.content}
               </div>
             </div>
@@ -199,17 +212,30 @@ const fetchMessages = async () => {
       {selectedMessage && (
         <div className="message-modal">
           <div className="modal-content">
-            <button className="close-btn" onClick={() => setSelectedMessage(null)}>×</button>
-            <h2>私信详情</h2>
+            <button className="close-btn" onClick={() => setSelectedMessage(null)}>
+              <i className="fas fa-times"></i>
+            </button>
+            <h2><i className="fas fa-envelope"></i> 私信详情</h2>
             <div className="message-header">
-              <p><strong>发件人:</strong> {selectedMessage.senderId}</p>
-              <p><strong>收件人:</strong> {selectedMessage.receiverId}</p>
-              <p><strong>时间:</strong> {new Date(selectedMessage.createTime).toLocaleString()}</p>
-              <p><strong>状态:</strong> {selectedMessage.isRead ? '已读' : '未读'}</p>
+              <p><strong><i className="fas fa-user"></i> 发件人:</strong> {selectedMessage.senderId}</p>
+              <p><strong><i className="fas fa-user"></i> 收件人:</strong> {selectedMessage.receiverId}</p>
+              <p><strong><i className="fas fa-clock"></i> 时间:</strong> {new Date(selectedMessage.createTime).toLocaleString()}</p>
+              <p><strong><i className={selectedMessage.isRead ? "fas fa-check" : "fas fa-exclamation"}></i> 状态:</strong> {selectedMessage.isRead ? '已读' : '未读'}</p>
             </div>
             <div className="message-body">
               {selectedMessage.content}
             </div>
+            {selectedMessage.receiverId === currentUserId && (
+              <button 
+                className="reply-btn"
+                onClick={() => {
+                  setSelectedMessage(null);
+                  handleReply(selectedMessage.senderId);
+                }}
+              >
+                <i className="fas fa-reply"></i> 回复
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -221,9 +247,11 @@ const fetchMessages = async () => {
             <button className="close-btn" onClick={() => {
               setIsComposing(false);
               setIsReplying(false);
-            }}>×</button>
+            }}>
+              <i className="fas fa-times"></i>
+            </button>
             
-            <h2>{isReplying ? '回复私信' : '新建私信'}</h2>
+            <h2><i className="fas fa-edit"></i> {isReplying ? '回复私信' : '新建私信'}</h2>
             
             <form onSubmit={(e) => {
               e.preventDefault();
@@ -237,7 +265,7 @@ const fetchMessages = async () => {
               setIsReplying(false);
             }}>
               <div className="form-group">
-                <label>收件人ID:</label>
+                <label><i className="fas fa-user"></i> 收件人ID:</label>
                 <input 
                   type="text" 
                   name="receiverId" 
@@ -248,17 +276,23 @@ const fetchMessages = async () => {
               </div>
               
               <div className="form-group">
-                <label>内容:</label>
-                <textarea name="content" rows="4" required></textarea>
+                <label><i className="fas fa-align-left"></i> 内容:</label>
+                <textarea name="content" rows="6" required></textarea>
               </div>
               
               <div className="form-actions">
-                <button type="submit">发送</button>
-                <button type="button" onClick={() => {
-                  setIsComposing(false);
-                  setIsReplying(false);
-                }}>
-                  取消
+                <button type="submit" className="send-btn">
+                  <i className="fas fa-paper-plane"></i> 发送
+                </button>
+                <button 
+                  type="button" 
+                  className="cancel-btn"
+                  onClick={() => {
+                    setIsComposing(false);
+                    setIsReplying(false);
+                  }}
+                >
+                  <i className="fas fa-times"></i> 取消
                 </button>
               </div>
             </form>

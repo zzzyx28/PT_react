@@ -1,16 +1,25 @@
 /* 全局容器 */
 .announcement-container {
-  max-width: 1200px;
+  width: 80vw; /* 80% 宽度 */
+  height: calc(100vh - 120px); /* 100% 高度减去导航栏高度 */
   margin: 0 auto;
   padding: 20px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
-/* 搜索栏 */
+/* 搜索栏 - 固定在顶部 */
 .search-bar {
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
+  position: sticky;
+  top: 0;
+  background: white;
+  padding: 10px 0;
+  z-index: 10;
 }
 
 .search-bar input {
@@ -34,12 +43,34 @@
   background: #52c41a !important;
 }
 
-/* 公告列表 */
+/* 公告列表 - 可滚动区域 */
 .announcement-list {
   display: grid;
   gap: 20px;
+  overflow-y: auto; /* 允许垂直滚动 */
+  flex: 1; /* 占据剩余空间 */
+  padding-bottom: 20px; /* 底部留白 */
 }
 
+/* 自定义滚动条样式 */
+.announcement-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.announcement-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.announcement-list::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.announcement-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* 其余样式保持不变... */
 .announcement-card {
   background: white;
   border-radius: 8px;

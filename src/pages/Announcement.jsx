@@ -17,7 +17,7 @@ const AnnouncementBoard = () => {
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
-        const response = await fetch('http://localhost:8080/api/announcement/list');
+        const response = await fetch('http://localhost:8080/api/announcement/list?page=1&size=200');
         const data = await response.json();
         setAnnouncements(data.records);
         
@@ -49,7 +49,7 @@ const AnnouncementBoard = () => {
 // 搜索功能（前端过滤）
   const handleSearch = () => {
     if (!searchKeyword.trim()) {
-      fetch('http://localhost:8080/api/announcement/list')
+      fetch(`http://localhost:8080/api/announcement/list?page=1&size=200`)
         .then(res => res.json())
         .then(data => setAnnouncements(data.records));
       return;
